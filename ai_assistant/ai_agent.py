@@ -86,7 +86,7 @@ class PerplexityAgentCore:
                 search_results = self.search_tool.execute(search_query)
                 messages.append({
                     "role": "assistant", 
-                    "content": f"Результаты поиска: {search_results}"
+                    "content": self._call_llm(messages)
                 })
                 return self._call_llm(messages)
             return initial_response

@@ -55,6 +55,15 @@ def set_custom_style():
                 text-shadow: .25em 0 0 white, .5em 0 0 white;
             }
         }
+        @keyframes blink {
+            0% {opacity: 1;}
+            50% {opacity: 0;}
+            100% {opacity: 1;}
+        }
+        .typing-cursor {
+            animation: blink 1s infinite;
+            color: #666;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -73,7 +82,7 @@ def main():
             return
 
     # Заголовок
-    st.title("🦉 Perplexity AI Assistant")
+    st.title("🦉 AI Agent")
     st.caption("Ваш персональный психотерапевт)")
 
     # История чата
@@ -114,8 +123,41 @@ def main():
             
             # Заменяем индикатор загрузки на ответ
             placeholder.empty()
-            st.markdown(f'<div class="message-assistant">{full_response}</div>', 
-                       unsafe_allow_html=True)
+            current_message = ""
+            typing_cursor = '<span class="typing-cursor">|</span>'
+            
+            # Добавляем CSS-анимацию курсора
+            st.markdown("""
+            <style>
+                @keyframes blink {
+                    0% {opacity: 1;}
+                    50% {opacity: 0;}
+                    100% {opacity: 1;}
+                }
+                .typing-cursor {
+                    animation: blink 1s infinite;
+                    color: #666;
+                }
+            </style>
+            """, unsafe_allow_html=True)
+
+            for char in full_response:
+                current_message += char
+                # Случайная задержка для естественности
+                delay = 0.02 if char in ",.!? " else 0.03
+                placeholder.markdown(
+                    f'<div class="message-assistant">'
+                    f'{current_message.replace("\n", "<br>")}'
+                    f'{typing_cursor}</div>', 
+                    unsafe_allow_html=True
+                )
+                time.sleep(delay)
+
+            # Убираем курсор после завершения
+            placeholder.markdown(
+                f'<div class="message-assistant">{full_response}</div>', 
+                unsafe_allow_html=True
+            )
         
         st.session_state.messages.append({"role": "assistant", "content": full_response})
 
