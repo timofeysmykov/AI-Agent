@@ -55,11 +55,12 @@ class PerplexityAgentCore:
         self.search_tool = SearchTool(api_key)
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
+        self.system_prompt = self._load_system_prompt()  # Новая переменная
 
     def process_query(self, user_input: str) -> str:
         """Основной цикл обработки запроса"""
         try:
-            messages = self._create_system_prompt()
+            messages = self.system_prompt.copy()  # Используем сохраненный промпт
             messages.append({"role": "user", "content": user_input})
             
             initial_response = self._call_llm(messages=messages)
@@ -68,12 +69,13 @@ class PerplexityAgentCore:
                 search_query = self._extract_search_query(initial_response)
                 search_results = self.search_tool.execute(search_query)
                 
-                new_messages = messages + [
+                messages = self.system_prompt + [
+                    {"role": "user", "content": user_input},
                     {"role": "assistant", "content": initial_response},
-                    {"role": "user", "content": f"Результаты поиска по '{search_query}':\n{search_results}"}
+                    {"role": "user", "content": f"Результаты: {search_results}"}
                 ]
                 
-                return self._call_llm(messages=new_messages)
+                return self._call_llm(messages=messages)
             
             return initial_response
             
@@ -81,23 +83,15 @@ class PerplexityAgentCore:
             self.logger.error(f"Processing error: {str(e)}")
             return f"Произошла ошибка при обработке запроса: {str(e)}"
 
-    def _create_system_prompt(self) -> list:
-        """Загружает системный промпт из файла"""
+    def _load_system_prompt(self) -> list:
+        """Загружает промпт один раз при инициализации"""
         try:
             with open(SYSTEM_PROMPT_PATH, 'r', encoding='utf-8') as f:
-                prompt_content = f.read().strip()
-            
-            return [{
-                "role": "system",
-                "content": prompt_content
-            }]
-        
+                content = f.read().strip()
+                return [{"role": "system", "content": content}]
         except Exception as e:
             self.logger.error(f"Ошибка загрузки промпта: {e}")
-            return [{
-                "role": "system",
-                "content": "Вы - интеллектуальный ассистент с доступом к интернету. Отвечайте точно и обоснованно."
-            }]
+            return [{"role": "system", "content": "Базовый промпт..."}]
 
     def _call_llm(self, messages: list) -> str:
         """Вызов API Perplexity через официальный клиент"""
@@ -111,7 +105,8 @@ class PerplexityAgentCore:
                 model="sonar",
                 messages=messages,
                 temperature=0.7,
-                max_tokens=1024
+                max_tokens=800,
+                presence_penalty=0.5
             )
             
             return response.choices[0].message.content
@@ -127,17 +122,9 @@ class PerplexityAgentCore:
         return response.split("ТРЕБУЕТСЯ_ПОИСК:")[1].strip()
 
     def _postprocess_response(self, raw_response: str) -> str:
-        """Очистка ответа от технических деталей"""
-        # Удаляем маркированные списки
-        cleaned = re.sub(r'(•|\d+\.)\s*', '', raw_response)
-        # Убираем квадратные скобки с источниками
-        cleaned = re.sub(r'\[\d+\]', '', cleaned)
-        # Заменяем формальные конструкции
-        replacements = {
-            "Согласно исследованиям": "Опыт показывает",
-            "В источниках указано": "Часто в таких случаях",
-            "Рекомендуется": "Предлагаю попробовать"
-        }
-        for pattern, replacement in replacements.items():
-            cleaned = cleaned.replace(pattern, replacement)
-        return cleaned
+        """Очистка ответа от технических артефактов"""
+        # Удаление всех технических артефактов
+        cleaned = re.sub(r'(?:\[.*?\]|\(.*?\)|\{.*?\})', '', raw_response)
+        cleaned = re.sub(r'[🔍📌🛠🌱💬]', '', cleaned)
+        cleaned = re.sub(r'\d+\.\s', '\n- ', cleaned)  # Единый стиль списков
+        return '\n'.join([p.strip() for p in cleaned.split('\n') if p.strip() and not p.startswith('Источник')])
