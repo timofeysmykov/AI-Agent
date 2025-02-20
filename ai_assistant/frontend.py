@@ -63,10 +63,10 @@ def main():
     load_dotenv()
     
     # Инициализация агента
-    if 'agent' not in st.session_state:
+    if "agent" not in st.session_state:
         try:
             st.session_state.agent = PerplexityAgentCore(
-                api_key="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"
+                api_key=os.getenv("PERPLEXITY_API_KEY")
             )
         except Exception as e:
             st.error(f"Ошибка инициализации агента: {str(e)}")
@@ -74,7 +74,7 @@ def main():
 
     # Заголовок
     st.title("🦉 Perplexity AI Assistant")
-    st.caption("Интеллектуальный помощник с доступом к интернету (на базе Perplexity)")
+    st.caption("Ваш персональный психотерапевт)")
 
     # История чата
     if "messages" not in st.session_state:

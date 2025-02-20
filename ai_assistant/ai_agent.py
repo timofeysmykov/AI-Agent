@@ -31,44 +31,68 @@ SYSTEM_PROMPT_PATH = Path(__file__).parent / "prompts" / "system_instruction.txt
 #                         for i, r in enumerate(results)])
 
 class SearchTool:
-    """Заглушка для поискового инструмента (Perplexity имеет встроенный поиск)"""
+    TRUSTED_SOURCES = ["who.int", "nimh.nih.gov", "apa.org", "mayoclinic.org"]
+    
+    def __init__(self, api_key: str):
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.perplexity.ai"
+        )
+    
     def execute(self, query: str) -> str:
-        return "Perplexity автоматически использует актуальные данные из сети"
+        """Поиск через Perplexity API с фильтрацией источников"""
+        try:
+            response = self.client.chat.completions.create(
+                model="sonar-pro-online",
+                messages=[{
+                    "role": "user",
+                    "content": f"Поиск: {query}\nФильтры: сайты {', '.join(self.TRUSTED_SOURCES)}, данные за 2021-2024 гг."
+                }],
+                temperature=0.1,
+                max_tokens=1024
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logging.error(f"Ошибка поиска: {str(e)}")
+            return "Не удалось получить актуальные данные"
 
 class PerplexityAgentCore:
     """Центральный 'мозг' агента на базе Perplexity API"""
+    THERAPY_METHODS = {
+        "anxiety": "Техника дыхания 4-7-8...",
+        "depression": "Дневник настроений..."
+    }
+
+    CRISIS_RESPONSE = """⚠️ Кризисная ситуация! 
+    Немедленно свяжитесь со специалистом: +7(495)989-50-50 (Москва), 112 (по России)"""
+    
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://api.perplexity.ai/chat/completions"
-        self.search_tool = SearchTool()
+        self.search_tool = SearchTool(api_key=api_key)
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
     
     def process_query(self, user_input: str) -> str:
-        """Основной цикл обработки запроса"""
+        if self._is_crisis_situation(user_input):
+            return self.CRISIS_RESPONSE
+        
+        messages = self._create_system_prompt()
+        messages.append({"role": "user", "content": user_input})
+        
         try:
-            # Создаем список сообщений
-            messages = self._create_system_prompt()
-            
-            # Добавляем сообщение пользователя
-            messages.append({"role": "user", "content": user_input})
-            
-            # Получаем ответ от модели
-            initial_response = self._call_llm(messages=messages)
-            
-            # Проверяем необходимость поиска
+            initial_response = self._call_llm(messages)
             if "ТРЕБУЕТСЯ_ПОИСК" in initial_response:
-                search_query = self._extract_search_query(initial_response)
-                # Добавляем поисковый запрос к сообщениям
-                messages.append({"role": "assistant", "content": initial_response})
-                messages.append({"role": "user", "content": f"Поисковый запрос: {search_query}"})
-                return self._call_llm(messages=messages)
-            
+                search_query = initial_response.split("ТРЕБУЕТСЯ_ПОИСК:")[1].strip()
+                search_results = self.search_tool.execute(search_query)
+                messages.append({
+                    "role": "assistant", 
+                    "content": f"Результаты поиска: {search_results}"
+                })
+                return self._call_llm(messages)
             return initial_response
-            
         except Exception as e:
-            self.logger.error(f"Processing error: {str(e)}")
-            return f"Произошла ошибка при обработке запроса: {str(e)}"
+            self.logger.error(f"Ошибка: {str(e)}")
+            return "Произошла внутренняя ошибка. Пожалуйста, попробуйте позже."
 
     def _create_system_prompt(self) -> list:
         """Загружает системный промпт из файла"""
@@ -91,14 +115,8 @@ class PerplexityAgentCore:
     def _call_llm(self, messages: list) -> str:
         """Вызов API Perplexity через официальный клиент"""
         try:
-            # Инициализация клиента с правильным base_url
-            client = OpenAI(
-                api_key=self.api_key,
-                base_url="https://api.perplexity.ai"
-            )
-            
             # Вызов API с актуальными параметрами
-            response = client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model="sonar-pro",  # Или "sonar-7b"
                 messages=messages,
                 temperature=0.7,
@@ -112,15 +130,6 @@ class PerplexityAgentCore:
             self.logger.error(f"API error: {str(e)}")
             raise RuntimeError(f"Ошибка API: {str(e)}")
 
-    def _extract_search_query(self, response: str) -> str:
-        """Извлекает поисковый запрос из ответа LLM"""
-        return response.split("ТРЕБУЕТСЯ_ПОИСК:")[1].strip()
-
-    def _generate_final_response(self, query: str, context: str) -> str:
-        """Генерирует финальный ответ с использованием контекста"""
-        return self._call_llm(
-            messages=self._create_system_prompt() + [
-                {"role": "user", "content": query},
-                {"role": "assistant", "content": f"Контекст поиска:\n{context}"}
-            ]
-        )
+    def _is_crisis_situation(self, text: str) -> bool:
+        triggers = {"суицид", "умру", "убью себя", "не хочу жить", "насилие", "абьюз"}
+        return any(trigger in text.lower() for trigger in triggers)
