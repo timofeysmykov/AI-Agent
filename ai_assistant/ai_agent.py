@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Any, Optional, List, Union
 import os
 from pathlib import Path
-from perplexity import Perplexity
+# from perplexity import Perplexity  # Закомментировано
 import re
 from openai import OpenAI
 from jinja2 import Template
@@ -58,60 +58,59 @@ class BaseTool:
         """Выполнить действие инструмента"""
         raise NotImplementedError("Метод execute должен быть реализован в подклассах")
 
-class PerplexitySearchTool(BaseTool):
-    """Инструмент для поиска информации через Perplexity API"""
-    
-    TRUSTED_SOURCES = ["who.int", "nimh.nih.gov", "apa.org", "mayoclinic.org"]
-    CACHE_EXPIRATION = 3600  # 1 час в секундах
-    
-    def __init__(self, api_key: str):
-        super().__init__(
-            name="perplexity_search",
-            description="Поиск информации с использованием Perplexity AI"
-        )
-        if not api_key:
-            raise ValidationError("API ключ не может быть пустым")
-        self.api_key = api_key
-        self.cache: Dict[str, Dict[str, Union[str, float]]] = {}
-    
-    def execute(self, query: str) -> str:
-        # Заменить вызов Perplexity на общий HTTP-запрос
-        response = requests.post(
-            "https://api.perplexity.ai/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={
-                "model": "sonar",
-                "messages": [{"role": "user", "content": query}]
-            }
-        )
-        return response.json()["choices"][0]["message"]["content"]
-    
-    def _get_from_cache(self, query: str) -> Optional[str]:
-        """Получает результат из кэша если он не устарел"""
-        if query in self.cache:
-            cache_time = self.cache[query]["timestamp"]
-            if time.time() - cache_time < self.CACHE_EXPIRATION:
-                return self.cache[query]["result"]
-        return None
-    
-    def _add_to_cache(self, query: str, result: str) -> None:
-        """Добавляет результат в кэш"""
-        self.cache[query] = {
-            "result": result,
-            "timestamp": time.time()
-        }
-        # Очищаем старые записи
-        self._cleanup_cache()
-    
-    def _cleanup_cache(self) -> None:
-        """Удаляет устаревшие записи из кэша"""
-        current_time = time.time()
-        expired_queries = [
-            query for query, data in self.cache.items()
-            if current_time - data["timestamp"] > self.CACHE_EXPIRATION
-        ]
-        for query in expired_queries:
-            del self.cache[query]
+# class PerplexitySearchTool(BaseTool):
+#     """Инструмент для поиска информации через Perplexity API"""
+#     
+#     TRUSTED_SOURCES = ["who.int", "nimh.nih.gov", "apa.org", "mayoclinic.org"]
+#     CACHE_EXPIRATION = 3600  # 1 час в секундах
+#     
+#     def __init__(self, api_key: str):
+#         super().__init__(
+#             name="perplexity_search",
+#             description="Поиск информации с использованием Perplexity AI"
+#         )
+#         if not api_key:
+#             raise ValidationError("API ключ не может быть пустым")
+#         self.api_key = api_key
+#         self.cache: Dict[str, Dict[str, Union[str, float]]] = {}
+#     
+#     def execute(self, query: str) -> str:
+#         response = requests.post(
+#             "https://api.perplexity.ai/chat/completions",
+#             headers={"Authorization": f"Bearer {self.api_key}"},
+#             json={
+#                 "model": "sonar",
+#                 "messages": [{"role": "user", "content": query}]
+#             }
+#         )
+#         return response.json()["choices"][0]["message"]["content"]
+#     
+#     def _get_from_cache(self, query: str) -> Optional[str]:
+#         """Получает результат из кэша если он не устарел"""
+#         if query in self.cache:
+#             cache_time = self.cache[query]["timestamp"]
+#             if time.time() - cache_time < self.CACHE_EXPIRATION:
+#                 return self.cache[query]["result"]
+#         return None
+#     
+#     def _add_to_cache(self, query: str, result: str) -> None:
+#         """Добавляет результат в кэш"""
+#         self.cache[query] = {
+#             "result": result,
+#             "timestamp": time.time()
+#         }
+#         # Очищаем старые записи
+#         self._cleanup_cache()
+#     
+#     def _cleanup_cache(self) -> None:
+#         """Удаляет устаревшие записи из кэша"""
+#         current_time = time.time()
+#         expired_queries = [
+#             query for query, data in self.cache.items()
+#             if current_time - data["timestamp"] > self.CACHE_EXPIRATION
+#         ]
+#         for query in expired_queries:
+#             del self.cache[query]
 
 class PerplexityAgentCore:
     """Основной класс для обработки запросов через Claude API"""
@@ -131,14 +130,13 @@ class PerplexityAgentCore:
        - Формулировка гипотез
     
     2. Action (Действие):
-       - Использование доступных инструментов
-       - Поиск дополнительной информации
-       - Формирование промежуточных ответов
+       - Формирование ответа
        - Применение найденных решений
+       - Предложение конкретных шагов
     
     3. Observation (Наблюдение):
-       - Анализ результатов действий
-       - Оценка полученной информации
+       - Анализ результатов
+       - Оценка эффективности
        - Формирование финального ответа
        - Планирование следующих шагов
     """
@@ -148,27 +146,26 @@ class PerplexityAgentCore:
     
     Пользователь: "Я постоянно волнуюсь перед выступлениями"
     
-    Thought: Пользователь испытывает тревогу перед публичными выступлениями. Нужно понять причины тревоги и найти подходящие техники. Возможно, потребуется поиск специфических методик.
+    Thought: Пользователь испытывает тревогу перед публичными выступлениями. Нужно понять причины тревоги и предложить подходящие техники.
     
-    Action: Использую поиск для получения информации о современных методах работы с тревогой перед выступлениями.
-    ТРЕБУЕТСЯ_ПОИСК: эффективные методы преодоления страха публичных выступлений, современные исследования
+    Action: Формирую эмпатичный ответ с конкретными рекомендациями.
     
-    Observation: Получена информация о техниках дыхания, визуализации и подготовки. Преобразую в эмпатичный ответ.
+    Observation: Важно начать с валидации чувств и предложить поэтапный подход к работе с тревогой.
     
     Ассистент: "Я слышу, как сильно вас беспокоят эти выступления. Это действительно может быть очень тревожно. Давайте поговорим о том, что именно вызывает наибольшее волнение? Часто, когда мы лучше понимаем свои триггеры, становится легче с ними работать..."
     """
     
-    def __init__(self, claude_api_key: str, perplexity_api_key: str):
+    def __init__(self, claude_api_key: str, perplexity_api_key: str = None):  # perplexity_api_key сделан опциональным
         if not claude_api_key:
             raise ValidationError("API ключ Claude не может быть пустым")
             
         self.claude_api_key = claude_api_key
         self.logger = logging.getLogger(__name__)
         
-        # Инициализация инструментов
-        self.tools = {
-            "search": PerplexitySearchTool(perplexity_api_key)
-        }
+        # Инициализация инструментов больше не нужна
+        # self.tools = {
+        #     "search": PerplexitySearchTool(perplexity_api_key)
+        # }
         
         # Загрузка системного промпта
         try:
@@ -193,17 +190,8 @@ class PerplexityAgentCore:
                 
             if not base_prompt:
                 raise ValidationError("Системный промпт не может быть пустым")
-                
-            # Добавляем описание доступных инструментов
-            tools_description = "\n".join(
-                f"- {name}: {tool.description}"
-                for name, tool in self.tools.items()
-            )
             
             full_prompt = f"""{base_prompt}
-
-            [Доступные инструменты]
-            {tools_description}
             
             [Workflow]
             {self.WORKFLOW_INSTRUCTIONS}
@@ -244,22 +232,22 @@ class PerplexityAgentCore:
             
             [Инструкция]
             1. Проанализируй запрос пользователя
-            2. Определи, достаточно ли информации для ответа
-            3. Сформулируй план действий
-            4. Укажи, нужен ли поиск дополнительной информации
+            2. Определи суть проблемы или запроса
+            3. Сформулируй план ответа
+            4. Подготовь эмпатичный ответ
             
             Формат ответа:
             Thought: [твой анализ ситуации]
             Action: [планируемое действие]
-            ТРЕБУЕТСЯ_ПОИСК: [поисковый запрос, если нужен]
+            Observation: [анализ и финальный ответ]
             """
             
             messages.append({"role": "user", "content": thought_prompt})
             
-            # Получаем размышление модели
+            # Получаем ответ модели
             for attempt in range(self.MAX_RETRIES):
                 try:
-                    thought_response = self._call_llm(messages)
+                    response = self._call_llm(messages)
                     break
                 except APIError as e:
                     if attempt == self.MAX_RETRIES - 1:
@@ -267,44 +255,10 @@ class PerplexityAgentCore:
                     self.logger.warning(f"Попытка {attempt + 1} не удалась: {str(e)}")
                     time.sleep(self.RETRY_DELAY)
             
-            # Action: Выполняем необходимые действия
-            if "ТРЕБУЕТСЯ_ПОИСК:" in thought_response:
-                search_results = self._handle_search_request(
-                    user_input, thought_response, messages
-                )
-                
-                # Observation: Анализируем результаты
-                observation_prompt = f"""
-                [Результаты поиска]
-                {search_results}
-                
-                [Инструкция]
-                Проанализируй результаты поиска и сформируй ответ, следуя workflow:
-                
-                1. Thought: Проанализируй полученную информацию, выдели ключевые моменты
-                
-                2. Action: Опиши, как ты используешь найденную информацию
-                
-                3. Observation: Сформируй финальный ответ для пользователя, следуя правилам:
-                   - Используй естественный, разговорный стиль
-                   - Проявляй эмпатию и поддержку
-                   - Не упоминай источники информации
-                   - Избегай формальных списков
-                   - Добавь личные наблюдения
-                   - Задай уточняющие вопросы
-                
-                Помни: пользователь не должен видеть этапы Thought и Action, только финальный эмпатичный ответ.
-                """
-                
-                messages.append({"role": "user", "content": observation_prompt})
-                final_response = self._call_llm(messages)
-            else:
-                final_response = thought_response
-            
             # Обновляем историю
-            self._update_history(user_input, final_response)
+            self._update_history(user_input, response)
             
-            return self._postprocess_response(final_response)
+            return self._postprocess_response(response)
             
         except Exception as e:
             error_msg = f"Ошибка при обработке запроса: {str(e)}"
@@ -322,57 +276,6 @@ class PerplexityAgentCore:
             
         context.append({"role": "user", "content": user_input})
         return context
-    
-    def _handle_search_request(
-        self, 
-        user_input: str, 
-        thought_response: str,
-        messages: List[Dict[str, str]]
-    ) -> str:
-        """Обработка запроса, требующего поиска информации"""
-        try:
-            search_query = self._extract_search_query(thought_response)
-            self.logger.info(f"Выполняю поиск: {search_query[:100]}...")
-            
-            search_results = self.tools["search"].execute(search_query)
-            self.logger.info(f"Получены результаты поиска длиной {len(search_results)} символов")
-            
-            # Формируем специальный промпт для обработки результатов поиска
-            observation_prompt = f"""
-            [Результаты поиска]
-            {search_results}
-            
-            [Инструкция]
-            Проанализируй результаты поиска и сформируй ответ, следуя workflow:
-            
-            1. Thought: Проанализируй полученную информацию, выдели ключевые моменты
-            
-            2. Action: Опиши, как ты используешь найденную информацию
-            
-            3. Observation: Сформируй финальный ответ для пользователя, следуя правилам:
-               - Используй естественный, разговорный стиль
-               - Проявляй эмпатию и поддержку
-               - Не упоминай источники информации
-               - Избегай формальных списков
-               - Добавь личные наблюдения
-               - Задай уточняющие вопросы
-            
-            Помни: пользователь не должен видеть этапы Thought и Action, только финальный эмпатичный ответ.
-            """
-            
-            # Обновляем контекст
-            messages.extend([
-                {"role": "assistant", "content": thought_response},
-                {"role": "user", "content": observation_prompt}
-            ])
-            
-            return self._call_llm(messages)
-            
-        except Exception as e:
-            error_msg = f"Ошибка при обработке поискового запроса: {str(e)}"
-            self.logger.error(error_msg)
-            self.logger.error(traceback.format_exc())
-            raise SearchError(error_msg)
     
     def _call_llm(self, messages: List[Dict[str, str]]) -> str:
         """Вызов Claude с обработкой ошибок"""
@@ -404,13 +307,14 @@ class PerplexityAgentCore:
                     Формат: "Thought: [твой анализ]"
                     
                     2. Action (действие):
-                    - Если нужен поиск: "ТРЕБУЕТСЯ_ПОИСК: [запрос]"
-                    - Если не нужен поиск: "Action: [прямой ответ]"
+                    - Формируй план ответа
+                    - Подготовь конкретные рекомендации
+                    Формат: "Action: [планируемые действия]"
                     
                     3. Observation (анализ):
-                    - Анализируй результаты действий
+                    - Анализируй результаты
                     - Формируй финальный ответ
-                    Формат: "Observation: [анализ результатов]"
+                    Формат: "Observation: [анализ и ответ]"
                     
                     [Формат ответа для пользователя]
                     1. Используй естественный, разговорный стиль
@@ -418,13 +322,12 @@ class PerplexityAgentCore:
                     3. Общайся от первого лица
                     4. Проявляй эмпатию и поддержку
                     5. Не используй маркеры и нумерацию
-                    6. Не упоминай источники информации
-                    7. Пиши как если бы это был живой диалог
+                    6. Пиши как если бы это был живой диалог
                     
                     [Пример правильного ответа]
-                    Thought: Пользователь испытывает тревогу перед выступлениями. Нужно понять причины и найти методы работы с тревогой.
+                    Thought: Пользователь испытывает тревогу перед выступлениями. Нужно понять причины и предложить методы работы с тревогой.
                     
-                    Action: ТРЕБУЕТСЯ_ПОИСК: современные методы работы с тревогой перед публичными выступлениями
+                    Action: Формирую эмпатичный ответ с конкретными рекомендациями.
                     
                     Observation: Получены данные о техниках дыхания, визуализации и подготовки. Формирую эмпатичный ответ.
                     
@@ -462,23 +365,6 @@ class PerplexityAgentCore:
             self.logger.error(error_msg)
             self.logger.error(traceback.format_exc())
             raise APIError(error_msg)
-    
-    def _extract_search_query(self, response: str) -> str:
-        """Извлечение поискового запроса с валидацией"""
-        try:
-            if "ТРЕБУЕТСЯ_ПОИСК:" not in response:
-                raise ValidationError("Неверный формат поискового запроса")
-                
-            query = response.split("ТРЕБУЕТСЯ_ПОИСК:")[1].strip()
-            if not query:
-                raise ValidationError("Пустой поисковый запрос")
-                
-            return query
-            
-        except Exception as e:
-            error_msg = f"Ошибка при извлечении поискового запроса: {str(e)}"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
     
     def _update_history(self, user_input: str, response: str) -> None:
         """Обновление истории сообщений"""
