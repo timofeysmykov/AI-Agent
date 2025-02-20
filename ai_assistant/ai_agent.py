@@ -75,37 +75,16 @@ class PerplexitySearchTool(BaseTool):
         self.cache: Dict[str, Dict[str, Union[str, float]]] = {}
     
     def execute(self, query: str) -> str:
-        """Выполняет поиск с кэшированием результатов"""
-        if not query.strip():
-            raise ValidationError("Поисковый запрос не может быть пустым")
-            
-        try:
-            # Проверяем кэш
-            cached_result = self._get_from_cache(query)
-            if cached_result:
-                self.logger.info(f"Найден кэшированный результат для запроса: {query}")
-                return cached_result
-            
-            # Выполняем поиск
-            client = Perplexity(api_key=self.api_key)
-            response = client.chat.completions.create(
-                model="sonar",
-                messages=[{"role": "user", "content": query}],
-                temperature=0.3
-            )
-            
-            result = response.choices[0].message.content
-            
-            # Сохраняем в кэш
-            self._add_to_cache(query, result)
-            
-            return result
-            
-        except Exception as e:
-            error_msg = f"Ошибка при поиске: {str(e)}"
-            self.logger.error(error_msg)
-            self.logger.error(traceback.format_exc())
-            raise SearchError(error_msg)
+        # Заменить вызов Perplexity на общий HTTP-запрос
+        response = requests.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "model": "sonar",
+                "messages": [{"role": "user", "content": query}]
+            }
+        )
+        return response.json()["choices"][0]["message"]["content"]
     
     def _get_from_cache(self, query: str) -> Optional[str]:
         """Получает результат из кэша если он не устарел"""
@@ -143,18 +122,40 @@ class PerplexityAgentCore:
     
     # Инструкции для системного промпта
     WORKFLOW_INSTRUCTIONS = """
-    1. Анализ запроса пользователя
-    2. Эмпатическое слушание
-    3. Предложение конкретных техник
-    4. Проверка понимания
+    [Workflow: Thought-Action-Observation]
+    
+    1. Thought (Размышление):
+       - Анализ запроса пользователя
+       - Определение необходимых действий
+       - Оценка имеющейся информации
+       - Формулировка гипотез
+    
+    2. Action (Действие):
+       - Использование доступных инструментов
+       - Поиск дополнительной информации
+       - Формирование промежуточных ответов
+       - Применение найденных решений
+    
+    3. Observation (Наблюдение):
+       - Анализ результатов действий
+       - Оценка полученной информации
+       - Формирование финального ответа
+       - Планирование следующих шагов
     """
     
     EXAMPLES = """
-    Пользователь: "Я постоянно волнуюсь перед выступлениями"
-    Ассистент: "Понимаю, как это тревожно. Давайте разберем, что именно вызывает волнение..."
+    [Пример диалога с Thought-Action-Observation]
     
-    Пользователь: "Не могу сосредоточиться на работе"
-    Ассистент: "Сложно работать, когда внимание рассеивается. Что обычно помогает вам собраться?"
+    Пользователь: "Я постоянно волнуюсь перед выступлениями"
+    
+    Thought: Пользователь испытывает тревогу перед публичными выступлениями. Нужно понять причины тревоги и найти подходящие техники. Возможно, потребуется поиск специфических методик.
+    
+    Action: Использую поиск для получения информации о современных методах работы с тревогой перед выступлениями.
+    ТРЕБУЕТСЯ_ПОИСК: эффективные методы преодоления страха публичных выступлений, современные исследования
+    
+    Observation: Получена информация о техниках дыхания, визуализации и подготовки. Преобразую в эмпатичный ответ.
+    
+    Ассистент: "Я слышу, как сильно вас беспокоят эти выступления. Это действительно может быть очень тревожно. Давайте поговорим о том, что именно вызывает наибольшее волнение? Часто, когда мы лучше понимаем свои триггеры, становится легче с ними работать..."
     """
     
     def __init__(self, claude_api_key: str, perplexity_api_key: str):
@@ -226,7 +227,7 @@ class PerplexityAgentCore:
             raise AIAssistantError(error_msg)
     
     def process_query(self, user_input: str) -> str:
-        """Обработка пользовательского запроса с ретраями и валидацией"""
+        """Обработка пользовательского запроса с использованием workflow thought-action-observation"""
         if not user_input.strip():
             raise ValidationError("Пользовательский запрос не может быть пустым")
             
@@ -236,10 +237,29 @@ class PerplexityAgentCore:
             # Формируем контекст с историей
             messages = self._prepare_context(user_input)
             
-            # Первый вызов модели
+            # Thought: Первичный анализ запроса
+            thought_prompt = f"""
+            [Текущий запрос]
+            {user_input}
+            
+            [Инструкция]
+            1. Проанализируй запрос пользователя
+            2. Определи, достаточно ли информации для ответа
+            3. Сформулируй план действий
+            4. Укажи, нужен ли поиск дополнительной информации
+            
+            Формат ответа:
+            Thought: [твой анализ ситуации]
+            Action: [планируемое действие]
+            ТРЕБУЕТСЯ_ПОИСК: [поисковый запрос, если нужен]
+            """
+            
+            messages.append({"role": "user", "content": thought_prompt})
+            
+            # Получаем размышление модели
             for attempt in range(self.MAX_RETRIES):
                 try:
-                    initial_response = self._call_llm(messages)
+                    thought_response = self._call_llm(messages)
                     break
                 except APIError as e:
                     if attempt == self.MAX_RETRIES - 1:
@@ -247,13 +267,39 @@ class PerplexityAgentCore:
                     self.logger.warning(f"Попытка {attempt + 1} не удалась: {str(e)}")
                     time.sleep(self.RETRY_DELAY)
             
-            # Проверяем необходимость поиска
-            if "ТРЕБУЕТСЯ_ПОИСК:" in initial_response:
-                final_response = self._handle_search_request(
-                    user_input, initial_response, messages
+            # Action: Выполняем необходимые действия
+            if "ТРЕБУЕТСЯ_ПОИСК:" in thought_response:
+                search_results = self._handle_search_request(
+                    user_input, thought_response, messages
                 )
+                
+                # Observation: Анализируем результаты
+                observation_prompt = f"""
+                [Результаты поиска]
+                {search_results}
+                
+                [Инструкция]
+                Проанализируй результаты поиска и сформируй ответ, следуя workflow:
+                
+                1. Thought: Проанализируй полученную информацию, выдели ключевые моменты
+                
+                2. Action: Опиши, как ты используешь найденную информацию
+                
+                3. Observation: Сформируй финальный ответ для пользователя, следуя правилам:
+                   - Используй естественный, разговорный стиль
+                   - Проявляй эмпатию и поддержку
+                   - Не упоминай источники информации
+                   - Избегай формальных списков
+                   - Добавь личные наблюдения
+                   - Задай уточняющие вопросы
+                
+                Помни: пользователь не должен видеть этапы Thought и Action, только финальный эмпатичный ответ.
+                """
+                
+                messages.append({"role": "user", "content": observation_prompt})
+                final_response = self._call_llm(messages)
             else:
-                final_response = initial_response
+                final_response = thought_response
             
             # Обновляем историю
             self._update_history(user_input, final_response)
@@ -280,18 +326,44 @@ class PerplexityAgentCore:
     def _handle_search_request(
         self, 
         user_input: str, 
-        initial_response: str,
+        thought_response: str,
         messages: List[Dict[str, str]]
     ) -> str:
         """Обработка запроса, требующего поиска информации"""
         try:
-            search_query = self._extract_search_query(initial_response)
+            search_query = self._extract_search_query(thought_response)
+            self.logger.info(f"Выполняю поиск: {search_query[:100]}...")
+            
             search_results = self.tools["search"].execute(search_query)
+            self.logger.info(f"Получены результаты поиска длиной {len(search_results)} символов")
+            
+            # Формируем специальный промпт для обработки результатов поиска
+            observation_prompt = f"""
+            [Результаты поиска]
+            {search_results}
+            
+            [Инструкция]
+            Проанализируй результаты поиска и сформируй ответ, следуя workflow:
+            
+            1. Thought: Проанализируй полученную информацию, выдели ключевые моменты
+            
+            2. Action: Опиши, как ты используешь найденную информацию
+            
+            3. Observation: Сформируй финальный ответ для пользователя, следуя правилам:
+               - Используй естественный, разговорный стиль
+               - Проявляй эмпатию и поддержку
+               - Не упоминай источники информации
+               - Избегай формальных списков
+               - Добавь личные наблюдения
+               - Задай уточняющие вопросы
+            
+            Помни: пользователь не должен видеть этапы Thought и Action, только финальный эмпатичный ответ.
+            """
             
             # Обновляем контекст
             messages.extend([
-                {"role": "assistant", "content": initial_response},
-                {"role": "user", "content": f"Результаты поиска: {search_results}"}
+                {"role": "assistant", "content": thought_response},
+                {"role": "user", "content": observation_prompt}
             ])
             
             return self._call_llm(messages)
@@ -319,22 +391,70 @@ class PerplexityAgentCore:
             claude_messages = []
             for msg in messages:
                 if msg["role"] == "system":
-                    claude_messages.append({"role": "system", "content": msg["content"]})
-                elif msg["role"] == "user":
-                    claude_messages.append({"role": "user", "content": msg["content"]})
-                elif msg["role"] == "assistant":
-                    claude_messages.append({"role": "assistant", "content": msg["content"]})
+                    # Добавляем специальные инструкции для формата ответа и workflow
+                    content = f"""{msg["content"]}
+                    
+                    [Workflow: Thought-Action-Observation]
+                    При обработке каждого запроса следуй этапам:
+                    
+                    1. Thought (внутренний диалог):
+                    - Анализируй запрос пользователя
+                    - Определяй необходимые действия
+                    - Формулируй гипотезы
+                    Формат: "Thought: [твой анализ]"
+                    
+                    2. Action (действие):
+                    - Если нужен поиск: "ТРЕБУЕТСЯ_ПОИСК: [запрос]"
+                    - Если не нужен поиск: "Action: [прямой ответ]"
+                    
+                    3. Observation (анализ):
+                    - Анализируй результаты действий
+                    - Формируй финальный ответ
+                    Формат: "Observation: [анализ результатов]"
+                    
+                    [Формат ответа для пользователя]
+                    1. Используй естественный, разговорный стиль
+                    2. Избегай формальных списков и структур
+                    3. Общайся от первого лица
+                    4. Проявляй эмпатию и поддержку
+                    5. Не используй маркеры и нумерацию
+                    6. Не упоминай источники информации
+                    7. Пиши как если бы это был живой диалог
+                    
+                    [Пример правильного ответа]
+                    Thought: Пользователь испытывает тревогу перед выступлениями. Нужно понять причины и найти методы работы с тревогой.
+                    
+                    Action: ТРЕБУЕТСЯ_ПОИСК: современные методы работы с тревогой перед публичными выступлениями
+                    
+                    Observation: Получены данные о техниках дыхания, визуализации и подготовки. Формирую эмпатичный ответ.
+                    
+                    "Я понимаю, как волнительно выступать перед публикой. Давайте поговорим о том, что именно вызывает наибольшее беспокойство? Я знаю несколько действенных техник, которые могли бы вам помочь..."
+                    """
+                    claude_messages.append({"role": "system", "content": content})
+                else:
+                    claude_messages.append({"role": msg["role"], "content": msg["content"]})
             
             response = self.claude_client.messages.create(
-                model="claude-3-haiku-20240307",
+                model="claude-3-5-sonnet-20240620",
                 messages=claude_messages,
-                temperature=0.3,
+                temperature=0.7,
                 max_tokens=1200
             )
             
             result = response.content[0].text
             self.logger.info("Получен ответ длиной %d символов", len(result))
             
+            # Обрабатываем внутренний диалог
+            if "Thought:" in result and "Action:" in result:
+                self.logger.debug("Обнаружен внутренний диалог в ответе")
+                # Извлекаем финальный ответ после Observation
+                parts = result.split("Observation:")
+                if len(parts) > 1:
+                    final_response = parts[1].strip()
+                    # Убираем кавычки, если они есть
+                    final_response = re.sub(r'^"|"$', '', final_response)
+                    return final_response
+                
             return result
             
         except Exception as e:
