@@ -5,8 +5,9 @@ from typing import Dict, Any, Optional
 #from duckduckgo_search import DDGS
 import os
 from pathlib import Path
-from openai import OpenAI
+from perplexity import Perplexity
 import re
+from openai import OpenAI
 
 # Добавляем константу после импортов
 SYSTEM_PROMPT_PATH = Path(__file__).parent / "prompts" / "system_instruction.txt"
@@ -35,73 +36,50 @@ class SearchTool:
     TRUSTED_SOURCES = ["who.int", "nimh.nih.gov", "apa.org", "mayoclinic.org"]
     
     def __init__(self, api_key: str):
-        self.client = OpenAI(
-            api_key=api_key,
-            base_url="https://api.perplexity.ai"
-        )
+        self.api_key = api_key
     
     def execute(self, query: str) -> str:
-        """Поиск через Perplexity API с фильтрацией источников"""
-        try:
-            response = self.client.chat.completions.create(
-                model="sonar-pro-online",
-                messages=[{
-                    "role": "user",
-                    "content": f"Поиск: {query}\nФильтры: сайты {', '.join(self.TRUSTED_SOURCES)}, данные за 2021-2024 гг."
-                }],
-                temperature=0.1,
-                max_tokens=1024
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            logging.error(f"Ошибка поиска: {str(e)}")
-            return "Не удалось получить актуальные данные"
+        client = Perplexity(api_key=self.api_key)
+        response = client.chat.completions.create(
+            model="sonar",  # Единая модель для всего
+            messages=[{"role": "user", "content": query}]
+        )
+        return response.choices[0].message.content
 
 class PerplexityAgentCore:
     """Центральный 'мозг' агента на базе Perplexity API"""
-    THERAPY_METHODS = {
-        "anxiety": "Техника дыхания 4-7-8...",
-        "depression": "Дневник настроений..."
-    }
-
-    CRISIS_RESPONSE = """⚠️ Кризисная ситуация! 
-    Немедленно свяжитесь со специалистом: +7(495)989-50-50 (Москва), 112 (по России)"""
     
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.search_tool = SearchTool(api_key=api_key)
+        self.base_url = "https://api.perplexity.ai/chat/completions"
+        self.search_tool = SearchTool(api_key)
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
-    
+
     def process_query(self, user_input: str) -> str:
-        if self._is_crisis_situation(user_input):
-            return self.CRISIS_RESPONSE
-        
-        messages = self._create_system_prompt()
-        messages.append({"role": "user", "content": user_input})
-        
+        """Основной цикл обработки запроса"""
         try:
-            initial_response = self._call_llm(messages)
+            messages = self._create_system_prompt()
+            messages.append({"role": "user", "content": user_input})
+            
+            initial_response = self._call_llm(messages=messages)
+            
             if "ТРЕБУЕТСЯ_ПОИСК" in initial_response:
                 search_query = self._extract_search_query(initial_response)
                 search_results = self.search_tool.execute(search_query)
                 
-                # Добавляем скрытую инструкцию для модели
-                analysis_prompt = f"""Проанализируй эти данные и сформулируй рекомендации:
-                {search_results}
+                new_messages = messages + [
+                    {"role": "assistant", "content": initial_response},
+                    {"role": "user", "content": f"Результаты поиска по '{search_query}':\n{search_results}"}
+                ]
                 
-                Требования к ответу:
-                - Только практические шаги
-                - Без упоминания источников
-                - В разговорном стиле
-                - С примерами фраз для диалога"""
-                
-                messages.append({"role": "user", "content": analysis_prompt})
-                return self._call_llm(messages)
+                return self._call_llm(messages=new_messages)
+            
             return initial_response
+            
         except Exception as e:
-            self.logger.error(f"Ошибка: {str(e)}")
-            return "Произошла внутренняя ошибка. Пожалуйста, попробуйте позже."
+            self.logger.error(f"Processing error: {str(e)}")
+            return f"Произошла ошибка при обработке запроса: {str(e)}"
 
     def _create_system_prompt(self) -> list:
         """Загружает системный промпт из файла"""
@@ -124,29 +102,29 @@ class PerplexityAgentCore:
     def _call_llm(self, messages: list) -> str:
         """Вызов API Perplexity через официальный клиент"""
         try:
-            # Вызов API с актуальными параметрами
-            response = self.client.chat.completions.create(
-                model="sonar-pro",  # Или "sonar-7b"
+            client = OpenAI(
+                api_key=self.api_key,
+                base_url="https://api.perplexity.ai"
+            )
+            
+            response = client.chat.completions.create(
+                model="sonar",
                 messages=messages,
                 temperature=0.7,
                 max_tokens=1024
             )
             
-            # Получение текста ответа
             return response.choices[0].message.content
             
         except Exception as e:
             self.logger.error(f"API error: {str(e)}")
             raise RuntimeError(f"Ошибка API: {str(e)}")
 
-    def _is_crisis_situation(self, text: str) -> bool:
-        triggers = {"суицид", "умру", "убью себя", "не хочу жить", "насилие", "абьюз"}
-        return any(trigger in text.lower() for trigger in triggers)
-
     def _extract_search_query(self, response: str) -> str:
-        # Implement the logic to extract search query from the response
-        # This is a placeholder and should be replaced with the actual implementation
-        return "extracted_query"
+        """Извлекает поисковый запрос из ответа LLM"""
+        if "ТРЕБУЕТСЯ_ПОИСК:" not in response:
+            raise ValueError("Неверный формат поискового запроса")
+        return response.split("ТРЕБУЕТСЯ_ПОИСК:")[1].strip()
 
     def _postprocess_response(self, raw_response: str) -> str:
         """Очистка ответа от технических деталей"""

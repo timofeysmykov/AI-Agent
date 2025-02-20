@@ -73,13 +73,9 @@ def main():
     
     # Инициализация агента
     if "agent" not in st.session_state:
-        try:
-            st.session_state.agent = PerplexityAgentCore(
-                api_key=os.getenv("PERPLEXITY_API_KEY")
-            )
-        except Exception as e:
-            st.error(f"Ошибка инициализации агента: {str(e)}")
-            return
+        st.session_state.agent = PerplexityAgentCore(
+            api_key=os.getenv("PERPLEXITY_API_KEY")
+        )
 
     # Заголовок
     st.title("🦉 AI Agent")
