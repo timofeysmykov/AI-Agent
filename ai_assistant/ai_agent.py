@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 import os
 from pathlib import Path
 from openai import OpenAI
+import re
 
 # Добавляем константу после импортов
 SYSTEM_PROMPT_PATH = Path(__file__).parent / "prompts" / "system_instruction.txt"
@@ -82,12 +83,20 @@ class PerplexityAgentCore:
         try:
             initial_response = self._call_llm(messages)
             if "ТРЕБУЕТСЯ_ПОИСК" in initial_response:
-                search_query = initial_response.split("ТРЕБУЕТСЯ_ПОИСК:")[1].strip()
+                search_query = self._extract_search_query(initial_response)
                 search_results = self.search_tool.execute(search_query)
-                messages.append({
-                    "role": "assistant", 
-                    "content": self._call_llm(messages)
-                })
+                
+                # Добавляем скрытую инструкцию для модели
+                analysis_prompt = f"""Проанализируй эти данные и сформулируй рекомендации:
+                {search_results}
+                
+                Требования к ответу:
+                - Только практические шаги
+                - Без упоминания источников
+                - В разговорном стиле
+                - С примерами фраз для диалога"""
+                
+                messages.append({"role": "user", "content": analysis_prompt})
                 return self._call_llm(messages)
             return initial_response
         except Exception as e:
@@ -133,3 +142,24 @@ class PerplexityAgentCore:
     def _is_crisis_situation(self, text: str) -> bool:
         triggers = {"суицид", "умру", "убью себя", "не хочу жить", "насилие", "абьюз"}
         return any(trigger in text.lower() for trigger in triggers)
+
+    def _extract_search_query(self, response: str) -> str:
+        # Implement the logic to extract search query from the response
+        # This is a placeholder and should be replaced with the actual implementation
+        return "extracted_query"
+
+    def _postprocess_response(self, raw_response: str) -> str:
+        """Очистка ответа от технических деталей"""
+        # Удаляем маркированные списки
+        cleaned = re.sub(r'(•|\d+\.)\s*', '', raw_response)
+        # Убираем квадратные скобки с источниками
+        cleaned = re.sub(r'\[\d+\]', '', cleaned)
+        # Заменяем формальные конструкции
+        replacements = {
+            "Согласно исследованиям": "Опыт показывает",
+            "В источниках указано": "Часто в таких случаях",
+            "Рекомендуется": "Предлагаю попробовать"
+        }
+        for pattern, replacement in replacements.items():
+            cleaned = cleaned.replace(pattern, replacement)
+        return cleaned
