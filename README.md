@@ -1,6 +1,6 @@
 # AI Assistant
 
-AI Assistant - это интеллектуальный помощник, построенный на основе Claude API и Perplexity API.
+AI Assistant - это интеллектуальный помощник, построенный на основе Claude API.
 
 ## Установка
 
@@ -25,8 +25,8 @@ pip install -e .
 
 4. Создайте файл `.env` в корневой директории проекта со следующими переменными:
 ```
-CLAUDE_API_KEY=your_claude_api_key
-PERPLEXITY_API_KEY=your_perplexity_api_key
+# CLAUDE_API_KEY=your_claude_api_key
+# PERPLEXITY_API_KEY=your_perplexity_api_key
 ```
 
 ## Запуск

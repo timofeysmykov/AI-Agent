@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from ai_agent import PerplexityAgentCore, AIAssistantError
+from ai_agent import AIAssistantError
 import os
 from dotenv import load_dotenv
 import logging
@@ -24,9 +24,10 @@ MAX_RETRIES = 3
 RETRY_DELAY = 1
 ERROR_MESSAGES = {
     "claude_api_key_missing": "⚠️ API ключ Claude не найден. Пожалуйста, проверьте файл .env",
-    "perplexity_api_key_missing": "⚠️ API ключ Perplexity не найден. Пожалуйста, проверьте файл .env",
+    "invalid_api_key": "⚠️ Неверный API ключ",
+    "rate_limit": "⚠️ Превышен лимит запросов к API",
+    "api_error": "⚠️ Ошибка API",
     "general_error": "⚠️ Произошла ошибка: {}",
-    "rate_limit": "⚠️ Превышен лимит запросов. Пожалуйста, подождите немного.",
     "network_error": "⚠️ Проблема с сетевым подключением. Попробуйте позже.",
 }
 
@@ -107,30 +108,25 @@ def set_custom_style():
     </style>
     """, unsafe_allow_html=True)
 
-def initialize_agent() -> Optional[PerplexityAgentCore]:
-    """Инициализация агента с обработкой ошибок"""
-    try:
-        claude_api_key = os.getenv("CLAUDE_API_KEY")
-        perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
-        
-        if not claude_api_key:
-            st.error(ERROR_MESSAGES["claude_api_key_missing"])
-            return None
-            
-        if not perplexity_api_key:
-            st.error(ERROR_MESSAGES["perplexity_api_key_missing"])
-            return None
-            
-        return PerplexityAgentCore(
-            claude_api_key=claude_api_key,
-            perplexity_api_key=perplexity_api_key
-        )
-        
-    except Exception as e:
-        logger.error(f"Ошибка инициализации агента: {str(e)}")
-        logger.error(traceback.format_exc())
-        st.error(ERROR_MESSAGES["general_error"].format(str(e)))
+def initialize_agent():
+    """
+    Инициализирует агента с API ключами из переменных окружения
+    """
+    claude_api_key = os.getenv("CLAUDE_API_KEY")
+    # perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
+
+    if not claude_api_key:
+        st.error(ERROR_MESSAGES["claude_api_key_missing"])
         return None
+
+    # if not perplexity_api_key:
+    #     st.error(ERROR_MESSAGES["perplexity_api_key_missing"])
+    #     return None
+
+    # return PerplexityAgentCore(
+    #     claude_api_key=claude_api_key,
+    #     perplexity_api_key=perplexity_api_key
+    # )
 
 def display_message(role: str, content: str):
     """Отображение сообщения с анимацией"""
@@ -140,7 +136,7 @@ def display_message(role: str, content: str):
             unsafe_allow_html=True
         )
 
-def process_user_input(agent: PerplexityAgentCore, prompt: str) -> Optional[str]:
+def process_user_input(agent, prompt: str) -> Optional[str]:
     """Обработка пользовательского ввода с ретраями"""
     for attempt in range(MAX_RETRIES):
         try:
