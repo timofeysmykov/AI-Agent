@@ -89,7 +89,8 @@ class PerplexitySearchTool(BaseTool):
                 json={
                     "model": "sonar",
                     "messages": [{"role": "user", "content": query}]
-                }
+                },
+                timeout=10  # Добавить таймаут
             )
             
             if response.status_code != 200:
@@ -103,9 +104,10 @@ class PerplexitySearchTool(BaseTool):
             return result
             
         except Exception as e:
-            error_msg = f"Ошибка при выполнении поискового запроса: {str(e)}"
-            self.logger.error(error_msg)
-            self.logger.error(traceback.format_exc())
+            error_msg = "Ошибка поиска"
+            self.logger.error(f"{error_msg}: {type(e).__name__}")
+            if "PERPLEXITY_API_KEY" in str(e):
+                self.logger.error("Обнаружена утечка API ключа в логах!")
             raise SearchError(error_msg)
     
     def _get_from_cache(self, query: str) -> Optional[str]:
