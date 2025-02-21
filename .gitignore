@@ -1,4 +1,10 @@
 .env
 __pycache__/
 *.pyc
-.streamlit/ 
+.streamlit/
+venv/
+*.log
+.DS_Store
+*.egg-info/
+dist/
+build/ 

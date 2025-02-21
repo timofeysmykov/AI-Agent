@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from ai_assistant.ai_agent import PerplexityAgentCore, AIAssistantError
+from ai_agent import PerplexityAgentCore, AIAssistantError
 import os
 from dotenv import load_dotenv
 import logging
