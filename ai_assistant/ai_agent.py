@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Any, Optional, List, Union
 import os
 from pathlib import Path
-# from perplexity import Perplexity  # Закомментировано
+from perplexity import Perplexity
 import re
 from openai import OpenAI
 from jinja2 import Template
@@ -58,59 +58,82 @@ class BaseTool:
         """Выполнить действие инструмента"""
         raise NotImplementedError("Метод execute должен быть реализован в подклассах")
 
-# class PerplexitySearchTool(BaseTool):
-#     """Инструмент для поиска информации через Perplexity API"""
-#     
-#     TRUSTED_SOURCES = ["who.int", "nimh.nih.gov", "apa.org", "mayoclinic.org"]
-#     CACHE_EXPIRATION = 3600  # 1 час в секундах
-#     
-#     def __init__(self, api_key: str):
-#         super().__init__(
-#             name="perplexity_search",
-#             description="Поиск информации с использованием Perplexity AI"
-#         )
-#         if not api_key:
-#             raise ValidationError("API ключ не может быть пустым")
-#         self.api_key = api_key
-#         self.cache: Dict[str, Dict[str, Union[str, float]]] = {}
-#     
-#     def execute(self, query: str) -> str:
-#         response = requests.post(
-#             "https://api.perplexity.ai/chat/completions",
-#             headers={"Authorization": f"Bearer {self.api_key}"},
-#             json={
-#                 "model": "sonar",
-#                 "messages": [{"role": "user", "content": query}]
-#             }
-#         )
-#         return response.json()["choices"][0]["message"]["content"]
-#     
-#     def _get_from_cache(self, query: str) -> Optional[str]:
-#         """Получает результат из кэша если он не устарел"""
-#         if query in self.cache:
-#             cache_time = self.cache[query]["timestamp"]
-#             if time.time() - cache_time < self.CACHE_EXPIRATION:
-#                 return self.cache[query]["result"]
-#         return None
-#     
-#     def _add_to_cache(self, query: str, result: str) -> None:
-#         """Добавляет результат в кэш"""
-#         self.cache[query] = {
-#             "result": result,
-#             "timestamp": time.time()
-#         }
-#         # Очищаем старые записи
-#         self._cleanup_cache()
-#     
-#     def _cleanup_cache(self) -> None:
-#         """Удаляет устаревшие записи из кэша"""
-#         current_time = time.time()
-#         expired_queries = [
-#             query for query, data in self.cache.items()
-#             if current_time - data["timestamp"] > self.CACHE_EXPIRATION
-#         ]
-#         for query in expired_queries:
-#             del self.cache[query]
+class PerplexitySearchTool(BaseTool):
+    """Инструмент для поиска информации через Perplexity API"""
+    
+    TRUSTED_SOURCES = ["who.int", "nimh.nih.gov", "apa.org", "mayoclinic.org"]
+    CACHE_EXPIRATION = 3600  # 1 час в секундах
+    
+    def __init__(self, api_key: str):
+        super().__init__(
+            name="perplexity_search",
+            description="Поиск информации с использованием Perplexity AI"
+        )
+        if not api_key:
+            raise ValidationError("API ключ не может быть пустым")
+        self.api_key = api_key
+        self.cache: Dict[str, Dict[str, Union[str, float]]] = {}
+    
+    def execute(self, query: str) -> str:
+        # Проверяем кэш
+        cached_result = self._get_from_cache(query)
+        if cached_result:
+            self.logger.info("Результат получен из кэша")
+            return cached_result
+            
+        # Выполняем запрос к API
+        try:
+            response = requests.post(
+                "https://api.perplexity.ai/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json={
+                    "model": "sonar",
+                    "messages": [{"role": "user", "content": query}]
+                }
+            )
+            
+            if response.status_code != 200:
+                raise APIError(f"Ошибка API: {response.status_code}")
+                
+            result = response.json()["choices"][0]["message"]["content"]
+            
+            # Сохраняем в кэш
+            self._add_to_cache(query, result)
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Ошибка при выполнении поискового запроса: {str(e)}"
+            self.logger.error(error_msg)
+            self.logger.error(traceback.format_exc())
+            raise SearchError(error_msg)
+    
+    def _get_from_cache(self, query: str) -> Optional[str]:
+        """Получает результат из кэша если он не устарел"""
+        if query in self.cache:
+            cache_time = self.cache[query]["timestamp"]
+            if time.time() - cache_time < self.CACHE_EXPIRATION:
+                return self.cache[query]["result"]
+        return None
+    
+    def _add_to_cache(self, query: str, result: str) -> None:
+        """Добавляет результат в кэш"""
+        self.cache[query] = {
+            "result": result,
+            "timestamp": time.time()
+        }
+        # Очищаем старые записи
+        self._cleanup_cache()
+    
+    def _cleanup_cache(self) -> None:
+        """Удаляет устаревшие записи из кэша"""
+        current_time = time.time()
+        expired_queries = [
+            query for query, data in self.cache.items()
+            if current_time - data["timestamp"] > self.CACHE_EXPIRATION
+        ]
+        for query in expired_queries:
+            del self.cache[query]
 
 class PerplexityAgentCore:
     """Основной класс для обработки запросов через Claude API"""
@@ -162,10 +185,9 @@ class PerplexityAgentCore:
         self.claude_api_key = claude_api_key
         self.logger = logging.getLogger(__name__)
         
-        # Инициализация инструментов больше не нужна
-        # self.tools = {
-        #     "search": PerplexitySearchTool(perplexity_api_key)
-        # }
+        self.tools = {
+            "search": PerplexitySearchTool(perplexity_api_key)
+        }
         
         # Загрузка системного промпта
         try:
