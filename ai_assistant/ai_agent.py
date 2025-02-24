@@ -175,7 +175,7 @@ class ClaudeAgentCore:
     
     async def _search_information(self, query: str) -> Optional[str]:
         """
-        Выполняет поиск информации через Perplexity API
+        Выполняет поиск информации через Perplexity API с расширенной обработкой
         
         Args:
             query (str): Поисковый запрос
@@ -188,12 +188,54 @@ class ClaudeAgentCore:
             return None
             
         try:
-            results = await self.search_tool.execute(query)
-            self.logger.info(f"Успешно получены результаты поиска для запроса: {query[:100]}...")
-            return results
-        except Exception as e:
-            self.logger.error(f"Ошибка при поиске информации: {str(e)}")
+            # Максимальное количество попыток поиска
+            max_attempts = 3
+            
+            for attempt in range(max_attempts):
+                try:
+                    results = await self.search_tool.execute(query)
+                    
+                    # Проверка качества результатов
+                    if not results or len(results) < 50:  # Слишком короткий ответ
+                        self.logger.warning(f"Недостаточно информации в результатах поиска (попытка {attempt + 1})")
+                        
+                        # Модификация запроса для повторного поиска
+                        modified_query = f"""
+                        Expand and provide more comprehensive information about: {query}
+                        
+                        If previous search was insufficient:
+                        - Use broader search parameters
+                        - Include multiple perspectives
+                        - Provide more detailed context
+                        """
+                        
+                        # Если это последняя попытка, возвращаем предупреждение
+                        if attempt == max_attempts - 1:
+                            return "⚠️ Не удалось найти достаточно информации. Рекомендуется уточнить запрос."
+                        
+                        # Повторяем поиск с модифицированным запросом
+                        query = modified_query
+                        continue
+                    
+                    self.logger.info(f"Успешно получены результаты поиска для запроса: {query[:100]}...")
+                    return results
+                
+                except Exception as inner_error:
+                    self.logger.warning(f"Ошибка поиска (попытка {attempt + 1}): {str(inner_error)}")
+                    
+                    # Если это последняя попытка, возвращаем предупреждение
+                    if attempt == max_attempts - 1:
+                        return "⚠️ Критическая ошибка при поиске. Попробуйте позже."
+                    
+                    # Небольшая задержка между попытками
+                    await asyncio.sleep(1)
+            
             return None
+                
+        except Exception as e:
+            error_msg = f"Ошибка при поиске информации: {str(e)}"
+            self.logger.error(error_msg)
+            return "⚠️ Произошла ошибка при поиске информации. Попробуйте позже."
 
     async def process_query(self, user_input: str) -> str:
         """Обработка пользовательского запроса с использованием workflow thought-action-observation"""
@@ -205,11 +247,30 @@ class ClaudeAgentCore:
         try:
             # Расширенный список ключевых слов для обязательного поиска
             search_keywords = [
+                # Временные маркеры
                 "новост", "событи", "происходя", "последн", "актуальн", 
                 "сегодня", "неделя", "месяц", "текущ", 
                 "news", "current", "latest", "today", "week", "month",
+                
+                # Информационные категории
                 "погода", "прогноз", "курс", "валют", 
-                "weather", "forecast", "rate", "currency"
+                "weather", "forecast", "rate", "currency",
+                
+                # Дополнительные категории для принудительного поиска
+                "статистик", "исследован", "аналитик", 
+                "scientific", "research", "analytics",
+                
+                # Технологические и научные темы
+                "техно", "иннова", "открыти", 
+                "technology", "innovation", "discovery",
+                
+                # Глобальные и политические темы
+                "полити", "междунар", "конфликт", 
+                "politics", "international", "conflict",
+                
+                # Экономические темы
+                "эконом", "бизнес", "инвести", 
+                "economy", "business", "investment"
             ]
             
             # Проверяем, требуется ли обязательный поиск
@@ -217,22 +278,35 @@ class ClaudeAgentCore:
             
             # Если требуется поиск, сначала получаем актуальные данные
             search_results = None
-            if requires_search:
+            if requires_search or not self.search_tool:
                 if not self.search_tool:
                     self.logger.warning("Поиск требуется, но инструмент поиска не доступен")
                 else:
-                    # Формируем расширенный поисковый запрос
-                    search_query = f"Most recent and up-to-date information about: {user_input}. Focus on news and events from February 2025."
+                    # Формируем расширенный поисковый запрос с максимальной детализацией
+                    search_query = f"""
+                    Comprehensive and up-to-date information about: {user_input}
+                    
+                    Critical search requirements:
+                    - ONLY use information from February 2025
+                    - Provide most recent data and context
+                    - Include statistical data if applicable
+                    - Cite authoritative sources
+                    - Highlight key trends and developments
+                    
+                    Context: Detailed, factual, non-speculative information
+                    """
                     
                     # Добавляем контекст для русскоязычных запросов
                     if any(keyword in user_input.lower() for keyword in ["русск", "росси", "москв"]):
-                        search_query += " In Russian context."
+                        search_query += " In Russian context, focusing on local perspectives."
                     
                     search_results = await self._search_information(search_query)
                     
                     # Если поиск не дал результатов, логируем предупреждение
                     if not search_results:
                         self.logger.warning(f"Не удалось найти актуальную информацию для запроса: {search_query}")
+                        # Принудительный поиск даже при отсутствии результатов
+                        search_results = "⚠️ Актуальная информация не найдена. Рекомендуется уточнить запрос."
             
             # Формируем контекст с историей
             messages = self._prepare_context(user_input)
