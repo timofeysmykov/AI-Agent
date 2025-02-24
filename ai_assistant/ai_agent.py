@@ -1,14 +1,8 @@
-import requests
-import json
 import logging
 from typing import Dict, Any, Optional, List, Union
 import os
 from pathlib import Path
-# from perplexity import Perplexity
 import re
-from openai import OpenAI
-from jinja2 import Template
-from datetime import datetime
 import traceback
 import time
 import anthropic
@@ -58,88 +52,6 @@ class BaseTool:
     def execute(self, *args, **kwargs) -> str:
         """Выполнить действие инструмента"""
         raise NotImplementedError("Метод execute должен быть реализован в подклассах")
-
-# class PerplexitySearchTool(BaseTool):
-#     """Инструмент для поиска информации через Perplexity API"""
-#     
-#     TRUSTED_SOURCES = ["who.int", "nimh.nih.gov", "apa.org", "mayoclinic.org"]
-#     CACHE_EXPIRATION = 3600  # 1 час в секундах
-#     
-#     def __init__(self, api_key: str):
-#         super().__init__(
-#             name="perplexity_search",
-#             description="Поиск информации с использованием Perplexity AI"
-#         )
-#         if not api_key:
-#             raise ValidationError("API ключ не может быть пустым")
-#         self.api_key = api_key
-#         self.cache: Dict[str, Dict[str, Union[str, float]]] = {}
-#     
-#     def execute(self, query: str) -> str:
-#         # Проверяем кэш
-#         cached_result = self._get_from_cache(query)
-#         if cached_result:
-#             self.logger.info("Результат получен из кэша")
-#             return cached_result
-#             
-#         # Выполняем запрос к API
-#         try:
-#             response = requests.post(
-#                 "https://api.perplexity.ai/chat/completions",
-#                 headers={
-#                     "Authorization": f"Bearer {self.api_key[:8]}...{self.api_key[-4:]}"
-#                 },
-#                 json={
-#                     "model": "sonar",
-#                     "messages": [{"role": "user", "content": query}]
-#                 },
-#                 timeout=10  # Добавить таймаут
-#             )
-#             
-#             if response.status_code != 200:
-#                 raise APIError(f"Ошибка API: {response.status_code}")
-#                 
-#             result = response.json()["choices"][0]["message"]["content"]
-#             
-#             # Сохраняем в кэш
-#             self._add_to_cache(query, result)
-#             
-#             return result
-#             
-#         except Exception as e:
-#             error_msg = "Ошибка поиска"
-#             self.logger.error(f"{error_msg}: {type(e).__name__}")
-#             if "PERPLEXITY_API_KEY" in str(e):
-#                 self.logger.error("Обнаружена утечка API ключа в логах!")
-#             raise SearchError(error_msg)
-#     
-#     def _get_from_cache(self, query: str) -> Optional[str]:
-#         """Получает результат из кэша если он не устарел"""
-#         if query in self.cache:
-#             cache_time = self.cache[query]["timestamp"]
-#             if time.time() - cache_time < self.CACHE_EXPIRATION:
-#                 return self.cache[query]["result"]
-#         return None
-#     
-#     def _add_to_cache(self, query: str, result: str) -> None:
-#         """Добавляет результат в кэш"""
-#         self.cache[query] = {
-#             "result": result,
-#             "timestamp": time.time()
-#         }
-#         # Очищаем старые записи
-#         self._cleanup_cache()
-#     
-#     def _cleanup_cache(self) -> None:
-#         """Удаляет устаревшие записи из кэша"""
-#         MAX_CACHE_SIZE = 100
-#         if len(self.cache) > MAX_CACHE_SIZE:
-#             oldest = sorted(
-#                 self.cache.items(), 
-#                 key=lambda x: x[1]["timestamp"]
-#             )[:MAX_CACHE_SIZE//10]
-#             for item in oldest:
-#                 del self.cache[item[0]]
 
 class ClaudeAgentCore:
     """Основной класс для обработки запросов через Claude API"""
@@ -290,6 +202,10 @@ class ClaudeAgentCore:
             self.logger.error(traceback.format_exc())
             raise AIAssistantError(error_msg)
     
+    def _count_tokens(self, text: str) -> int:
+        """Подсчет примерного количества токенов в тексте"""
+        return len(text.split()) // 0.75
+
     def _prepare_context(self, user_input: str) -> List[Dict[str, str]]:
         """Подготовка контекста с учетом истории"""
         context = self.system_messages.copy()
@@ -299,6 +215,14 @@ class ClaudeAgentCore:
             context.extend(self.message_history[-self.MAX_HISTORY_LENGTH:])
             
         context.append({"role": "user", "content": user_input})
+        
+        # Проверяем и обрезаем контекст по токенам
+        MAX_TOKENS = 4000
+        current_tokens = sum(self._count_tokens(m["content"]) for m in context)
+        while current_tokens > MAX_TOKENS and len(context) > 1:
+            context.pop(1)
+            current_tokens = sum(self._count_tokens(m["content"]) for m in context)
+            
         return context
     
     def _call_llm(self, messages: List[Dict[str, str]]) -> str:
@@ -413,24 +337,3 @@ class ClaudeAgentCore:
             raise ValidationError("После обработки получен пустой ответ")
             
         return cleaned
-
-    def _count_tokens(self, text: str) -> int:
-        return len(text.split()) // 0.75
-    
-    current_tokens = sum(self._count_tokens(m["content"]) for m in context)
-    MAX_TOKENS = 4000
-    while current_tokens > MAX_TOKENS and len(context) > 1:
-        context.pop(1)
-        current_tokens = sum(self._count_tokens(m["content"]) for m in context)
-
-class Model(Enum):
-    # SONAR = "sonar-medium-online"
-    # PERPLEXITY = "pplx-70b-online"
-    CLAUDE = "claude-3-opus-20240229"
-    
-def select_model(self, strategy: str = "quality") -> Model:
-    # if strategy == "speed":
-    #     return Model.SONAR
-    # elif strategy == "balance":
-    #     return Model.PERPLEXITY
-    return Model.CLAUDE

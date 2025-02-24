@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from ai_agent import AIAssistantError
+from ai_assistant.ai_agent import ClaudeAgentCore
 import os
 from dotenv import load_dotenv
 import logging
@@ -113,20 +113,12 @@ def initialize_agent():
     Инициализирует агента с API ключами из переменных окружения
     """
     claude_api_key = os.getenv("CLAUDE_API_KEY")
-    # perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
 
     if not claude_api_key:
         st.error(ERROR_MESSAGES["claude_api_key_missing"])
         return None
 
-    # if not perplexity_api_key:
-    #     st.error(ERROR_MESSAGES["perplexity_api_key_missing"])
-    #     return None
-
-    # return PerplexityAgentCore(
-    #     claude_api_key=claude_api_key,
-    #     perplexity_api_key=perplexity_api_key
-    # )
+    return ClaudeAgentCore(claude_api_key=claude_api_key)
 
 def display_message(role: str, content: str):
     """Отображение сообщения с анимацией"""
