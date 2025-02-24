@@ -248,17 +248,17 @@ class ClaudeAgentCore:
             result = response.content[0].text
             self.logger.info("Получен ответ длиной %d символов", len(result))
             
-            # Обрабатываем внутренний диалог
-            if "Thought:" in result and "Action:" in result:
+            # Обрабатываем внутренний диалог, сохраняя весь ответ
+            if "Thought:" in result and "Action:" in result and "Observation:" in result:
                 self.logger.debug("Обнаружен внутренний диалог в ответе")
-                # Извлекаем финальный ответ после Observation
-                parts = result.split("Observation:")
+                # Берем всё, что после последнего Observation:
+                parts = result.rsplit("Observation:", 1)
                 if len(parts) > 1:
                     final_response = parts[1].strip()
-                    # Убираем кавычки, если они есть
-                    final_response = re.sub(r'^"|"$', '', final_response)
+                    # Убираем кавычки в начале и конце, если они есть
+                    final_response = re.sub(r'^["\']|["\']$', '', final_response)
                     return final_response
-                
+            
             return result
             
         except Exception as e:
