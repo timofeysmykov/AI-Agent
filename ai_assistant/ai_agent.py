@@ -228,66 +228,19 @@ class ClaudeAgentCore:
     def _call_llm(self, messages: List[Dict[str, str]]) -> str:
         """Вызов Claude с обработкой ошибок"""
         try:
-            # Проверяем наличие системного промпта
-            has_system_message = any(msg["role"] == "system" for msg in messages)
-            if not has_system_message:
-                self.logger.warning("Системный промпт отсутствует в сообщениях!")
-                messages = self.system_messages + messages
+            # Извлекаем системный промпт из сообщений
+            system_message = next((msg["content"] for msg in messages if msg["role"] == "system"), None)
+            # Фильтруем сообщения, оставляя только user и assistant
+            chat_messages = [msg for msg in messages if msg["role"] != "system"]
             
             self.logger.info("Отправка запроса к Claude API с %d сообщениями", len(messages))
             self.logger.debug("Первые 200 символов системного промпта: %s", 
-                          messages[0]["content"][:200] + "..." if messages else "Нет системного промпта")
-            
-            # Конвертируем сообщения в формат Claude
-            claude_messages = []
-            for msg in messages:
-                if msg["role"] == "system":
-                    # Добавляем специальные инструкции для формата ответа и workflow
-                    content = f"""{msg["content"]}
-                    
-                    [Workflow: Thought-Action-Observation]
-                    При обработке каждого запроса следуй этапам:
-                    
-                    1. Thought (внутренний диалог):
-                    - Анализируй запрос пользователя
-                    - Определяй необходимые действия
-                    - Формулируй гипотезы
-                    Формат: "Thought: [твой анализ]"
-                    
-                    2. Action (действие):
-                    - Формируй план ответа
-                    - Подготовь конкретные рекомендации
-                    Формат: "Action: [планируемые действия]"
-                    
-                    3. Observation (анализ):
-                    - Анализируй результаты
-                    - Формируй финальный ответ
-                    Формат: "Observation: [анализ и ответ]"
-                    
-                    [Формат ответа для пользователя]
-                    1. Используй естественный, разговорный стиль
-                    2. Избегай формальных списков и структур
-                    3. Общайся от первого лица
-                    4. Проявляй эмпатию и поддержку
-                    5. Не используй маркеры и нумерацию
-                    6. Пиши как если бы это был живой диалог
-                    
-                    [Пример правильного ответа]
-                    Thought: Пользователь испытывает тревогу перед выступлениями. Нужно понять причины и предложить методы работы с тревогой.
-                    
-                    Action: Формирую эмпатичный ответ с конкретными рекомендациями.
-                    
-                    Observation: Получены данные о техниках дыхания, визуализации и подготовки. Формирую эмпатичный ответ.
-                    
-                    "Я понимаю, как волнительно выступать перед публикой. Давайте поговорим о том, что именно вызывает наибольшее беспокойство? Я знаю несколько действенных техник, которые могли бы вам помочь..."
-                    """
-                    claude_messages.append({"role": "system", "content": content})
-                else:
-                    claude_messages.append({"role": msg["role"], "content": msg["content"]})
+                          system_message[:200] + "..." if system_message else "Нет системного промпта")
             
             response = self.claude_client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                messages=claude_messages,
+                model="claude-3-sonnet-20240229",
+                system=system_message,
+                messages=chat_messages,
                 temperature=0.7,
                 max_tokens=1200
             )
