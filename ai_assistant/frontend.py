@@ -4,6 +4,7 @@ from ai_assistant.ai_agent import ClaudeAgentCore
 import os
 from dotenv import load_dotenv
 import logging
+import asyncio
 from typing import Optional
 import traceback
 
@@ -113,12 +114,16 @@ def initialize_agent():
     Инициализирует агента с API ключами из переменных окружения
     """
     claude_api_key = os.getenv("CLAUDE_API_KEY")
+    perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
 
     if not claude_api_key:
         st.error(ERROR_MESSAGES["claude_api_key_missing"])
         return None
 
-    return ClaudeAgentCore(claude_api_key=claude_api_key)
+    return ClaudeAgentCore(
+        claude_api_key=claude_api_key,
+        perplexity_api_key=perplexity_api_key
+    )
 
 def display_message(role: str, content: str):
     """Отображение сообщения с анимацией"""
@@ -128,11 +133,11 @@ def display_message(role: str, content: str):
             unsafe_allow_html=True
         )
 
-def process_user_input(agent, prompt: str) -> Optional[str]:
+async def process_user_input(agent, prompt: str) -> Optional[str]:
     """Обработка пользовательского ввода с ретраями"""
     for attempt in range(MAX_RETRIES):
         try:
-            return agent.process_query(prompt)
+            return await agent.process_query(prompt)
         except Exception as e:
             if "rate limit" in str(e).lower():
                 if attempt == MAX_RETRIES - 1:
@@ -153,9 +158,13 @@ def animate_response(placeholder, response: str):
     current_message = ""
     typing_cursor = '<span class="typing-cursor">|</span>'
     
-    for char in response:
-        current_message += char
-        delay = 0.02 if char in ",.!? " else 0.03
+    # Разбиваем текст на чанки для более быстрой анимации
+    chunk_size = 5  # Количество символов в чанке
+    chunks = [response[i:i + chunk_size] for i in range(0, len(response), chunk_size)]
+    
+    for chunk in chunks:
+        current_message += chunk
+        delay = 0.01 if any(p in chunk for p in ",.!?") else 0.005
         placeholder.markdown(
             f'<div class="message-assistant">'
             f'{current_message.replace("\n", "<br>")}'
@@ -213,7 +222,7 @@ def main():
                     )
                 
                 # Получаем и анимируем ответ
-                response = process_user_input(st.session_state.agent, prompt)
+                response = asyncio.run(process_user_input(st.session_state.agent, prompt))
                 if response:
                     placeholder.empty()
                     animate_response(placeholder, response)

@@ -6,7 +6,9 @@ import re
 import traceback
 import time
 import anthropic
+import asyncio
 from enum import Enum
+from .tools import PerplexitySearchTool
 
 # Настройка логирования
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
@@ -119,12 +121,21 @@ class ClaudeAgentCore:
     Давайте начнем с одной техники, которая покажется вам наиболее подходящей. Какая из них вызывает у вас наибольший интерес? Мы можем подробно разобрать её применение и постепенно добавлять другие методы.
     """
     
-    def __init__(self, claude_api_key: str):
+    def __init__(self, claude_api_key: str, perplexity_api_key: Optional[str] = None):
         if not claude_api_key:
             raise ValidationError("API ключ Claude не может быть пустым")
             
         self.claude_api_key = claude_api_key
         self.logger = logging.getLogger(__name__)
+        
+        # Инициализация инструмента поиска
+        self.search_tool = None
+        if perplexity_api_key:
+            try:
+                self.search_tool = PerplexitySearchTool(perplexity_api_key)
+                self.logger.info("Инструмент поиска Perplexity успешно инициализирован")
+            except Exception as e:
+                self.logger.warning(f"Не удалось инициализировать инструмент поиска: {str(e)}")
         
         # Загрузка системного промпта
         try:
@@ -173,7 +184,29 @@ class ClaudeAgentCore:
             self.logger.error(traceback.format_exc())
             raise AIAssistantError(error_msg)
     
-    def process_query(self, user_input: str) -> str:
+    async def _search_information(self, query: str) -> Optional[str]:
+        """
+        Выполняет поиск информации через Perplexity API
+        
+        Args:
+            query (str): Поисковый запрос
+            
+        Returns:
+            Optional[str]: Результаты поиска или None в случае ошибки
+        """
+        if not self.search_tool:
+            self.logger.warning("Инструмент поиска не инициализирован")
+            return None
+            
+        try:
+            results = await self.search_tool.execute(query)
+            self.logger.info(f"Успешно получены результаты поиска для запроса: {query[:100]}...")
+            return results
+        except Exception as e:
+            self.logger.error(f"Ошибка при поиске информации: {str(e)}")
+            return None
+
+    async def process_query(self, user_input: str) -> str:
         """Обработка пользовательского запроса с использованием workflow thought-action-observation"""
         if not user_input.strip():
             raise ValidationError("Пользовательский запрос не может быть пустым")
@@ -194,8 +227,13 @@ class ClaudeAgentCore:
                - Основную проблему или потребность
                - Эмоциональное состояние
                - Контекст ситуации
+               - Требуется ли дополнительный поиск информации
                
-            2. Подготовьте ответ, который должен:
+            2. Если нужен поиск информации:
+               - Сформулируйте четкий поисковый запрос
+               - Укажите, какую именно информацию нужно найти
+               
+            3. Подготовьте ответ, который должен:
                - Начинаться с искреннего признания чувств и опыта пользователя
                - Предлагать 2-3 конкретные, применимые техники или решения
                - Для каждой техники обязательно указывать:
@@ -205,7 +243,7 @@ class ClaudeAgentCore:
                - Включать примеры из похожих ситуаций
                - Завершаться предложением конкретного первого шага
                
-            3. Используйте естественный разговорный стиль:
+            4. Используйте естественный разговорный стиль:
                - Пишите простым языком, как если бы вы говорили с другом
                - Объединяйте связанные мысли в абзацы
                - Делайте плавные переходы между темами
@@ -214,12 +252,13 @@ class ClaudeAgentCore:
             Формат ответа:
             Thought: [ваш анализ ситуации и эмоционального состояния]
             Action: [план помощи и конкретные техники]
+            Search: [поисковый запрос, если нужен дополнительный поиск]
             Observation: [финальный ответ в естественном, разговорном стиле]
             """
             
             messages.append({"role": "user", "content": thought_prompt})
             
-            # Получаем ответ модели
+            # Получаем первичный ответ модели
             for attempt in range(self.MAX_RETRIES):
                 try:
                     response = self._call_llm(messages)
@@ -229,6 +268,21 @@ class ClaudeAgentCore:
                         raise
                     self.logger.warning(f"Попытка {attempt + 1} не удалась: {str(e)}")
                     time.sleep(self.RETRY_DELAY)
+            
+            # Проверяем, нужен ли поиск информации
+            if "Search:" in response:
+                search_query = response.split("Search:")[1].split("Observation:")[0].strip()
+                if search_query:
+                    self.logger.info(f"Требуется поиск информации: {search_query[:100]}...")
+                    search_results = await self._search_information(search_query)
+                    
+                    if search_results:
+                        # Добавляем результаты поиска в контекст
+                        messages.append({"role": "assistant", "content": response})
+                        messages.append({"role": "user", "content": f"[Результаты поиска]\n{search_results}\n\nПожалуйста, используйте эту информацию для формирования финального ответа."})
+                        
+                        # Получаем обновленный ответ с учетом найденной информации
+                        response = self._call_llm(messages)
             
             # Обновляем историю
             self._update_history(user_input, response)
