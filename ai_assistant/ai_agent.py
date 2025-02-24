@@ -238,7 +238,7 @@ class ClaudeAgentCore:
                           system_message[:200] + "..." if system_message else "Нет системного промпта")
             
             response = self.claude_client.messages.create(
-                model="claude-3-sonnet-20240229",
+                model="claude-3-haiku-20240307",
                 system=system_message,
                 messages=chat_messages,
                 temperature=0.7,
