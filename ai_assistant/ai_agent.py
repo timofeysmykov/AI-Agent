@@ -203,45 +203,42 @@ class ClaudeAgentCore:
         self.logger.info(f"Получен новый запрос: {user_input[:100]}...")
         
         try:
+            # Определяем, требуется ли обязательный поиск информации
+            requires_search = any(keyword in user_input.lower() for keyword in [
+                "погода", "прогноз", "новост", "курс", "валют",
+                "weather", "forecast", "news", "rate", "currency"
+            ])
+            
+            # Если требуется поиск, сначала получаем актуальные данные
+            search_results = None
+            if requires_search:
+                if not self.search_tool:
+                    self.logger.warning("Поиск требуется, но инструмент поиска не доступен")
+                else:
+                    search_query = user_input
+                    if "русск" in user_input.lower() or "росси" in user_input.lower():
+                        search_query = f"latest {user_input} in Russia"
+                    else:
+                        search_query = f"latest {user_input}"
+                    search_results = await self._search_information(search_query)
+            
             # Формируем контекст с историей
             messages = self._prepare_context(user_input)
             
-            # Улучшенный промпт для анализа
-            thought_prompt = f"""
-            [Текущий запрос]
-            {user_input}
+            # Добавляем результаты поиска в контекст, если они есть
+            if search_results:
+                messages.append({"role": "system", "content": f"""
+                [Актуальные данные из поиска]
+                {search_results}
+                
+                Важно:
+                1. Используй ТОЛЬКО эти актуальные данные для ответа
+                2. НЕ используй устаревшие данные из своей базы знаний
+                3. Если данные неполные или неточные, укажи это
+                4. Структурируй информацию в понятном формате
+                """})
             
-            [Инструкция]
-            1. Проанализируйте запрос пользователя:
-               - Определите основную тему и цель запроса
-               - Оцените, требуется ли актуальная информация (например, погода, новости, курсы валют и т.д.)
-               - Определите, достаточно ли у вас знаний для полного ответа
-               
-            2. Если нужна актуальная информация:
-               - Обязательно сформулируйте четкий поисковый запрос
-               - Укажите конкретно, какие данные нужно найти
-               - Запрос должен быть на английском языке для лучших результатов
-               
-            3. После получения результатов поиска:
-               - Проанализируйте полученную информацию
-               - Структурируйте её в понятный формат
-               - Добавьте контекст и пояснения где необходимо
-               
-            4. Подготовьте финальный ответ:
-               - Используйте естественный разговорный стиль
-               - Информация должна быть точной и актуальной
-               - Добавьте полезные детали и рекомендации
-            
-            Формат ответа:
-            Thought: [анализ запроса и необходимости поиска]
-            Search: [поисковый запрос на английском, если нужен поиск]
-            Action: [план формирования ответа]
-            Observation: [финальный ответ в естественном стиле]
-            """
-            
-            messages.append({"role": "user", "content": thought_prompt})
-            
-            # Получаем первичный ответ модели
+            # Получаем ответ от модели
             for attempt in range(self.MAX_RETRIES):
                 try:
                     response = self._call_llm(messages)
@@ -251,31 +248,6 @@ class ClaudeAgentCore:
                         raise
                     self.logger.warning(f"Попытка {attempt + 1} не удалась: {str(e)}")
                     time.sleep(self.RETRY_DELAY)
-            
-            # Проверяем, нужен ли поиск информации
-            if "Search:" in response:
-                search_parts = response.split("Search:")[1].split("Action:" if "Action:" in response else "Observation:")[0].strip()
-                if search_parts:
-                    self.logger.info(f"Требуется поиск информации: {search_parts[:100]}...")
-                    search_results = await self._search_information(search_parts)
-                    
-                    if search_results:
-                        # Добавляем результаты поиска в контекст
-                        messages.append({"role": "assistant", "content": response})
-                        messages.append({"role": "user", "content": f"""
-                        [Результаты поиска]
-                        {search_results}
-                        
-                        Пожалуйста:
-                        1. Проанализируйте эту информацию
-                        2. Извлеките ключевые данные
-                        3. Сформируйте понятный и структурированный ответ
-                        4. Добавьте полезные детали и рекомендации
-                        5. Используйте естественный разговорный стиль
-                        """})
-                        
-                        # Получаем обновленный ответ с учетом найденной информации
-                        response = self._call_llm(messages)
             
             # Обновляем историю
             self._update_history(user_input, response)

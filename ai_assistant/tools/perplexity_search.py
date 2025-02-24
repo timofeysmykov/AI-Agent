@@ -28,6 +28,9 @@ class PerplexitySearchTool(BaseTool):
             Dict: Результаты поиска
         """
         try:
+            # Добавляем указание на необходимость актуальных данных
+            enhanced_query = f"Find the most recent and up-to-date information about: {query}. Focus on current data from 2024-2025. Include sources and dates where possible."
+            
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}/chat/completions",
@@ -40,11 +43,17 @@ class PerplexitySearchTool(BaseTool):
                         "messages": [
                             {
                                 "role": "system",
-                                "content": "Ты - поисковый ассистент. Твоя задача - найти актуальную информацию по запросу и предоставить структурированный ответ с указанием источников."
+                                "content": """You are a search assistant focused on finding the most recent and accurate information.
+                                Key requirements:
+                                1. ONLY provide information from 2024-2025 unless specifically asked about historical data
+                                2. Always include dates and sources where possible
+                                3. Clearly state if information might not be current
+                                4. Focus on factual data rather than opinions
+                                5. Structure information in a clear, readable format"""
                             },
                             {
                                 "role": "user",
-                                "content": query
+                                "content": enhanced_query
                             }
                         ],
                         "max_tokens": 1024
