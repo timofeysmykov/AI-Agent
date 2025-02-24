@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Dict, List, Optional
 import httpx
-from ..ai_agent import BaseTool
+from .base_tool import BaseTool
 
 logger = logging.getLogger(__name__)
 
