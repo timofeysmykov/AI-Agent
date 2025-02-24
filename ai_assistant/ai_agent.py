@@ -203,11 +203,17 @@ class ClaudeAgentCore:
         self.logger.info(f"Получен новый запрос: {user_input[:100]}...")
         
         try:
-            # Определяем, требуется ли обязательный поиск информации
-            requires_search = any(keyword in user_input.lower() for keyword in [
-                "погода", "прогноз", "новост", "курс", "валют",
-                "weather", "forecast", "news", "rate", "currency"
-            ])
+            # Расширенный список ключевых слов для обязательного поиска
+            search_keywords = [
+                "новост", "событи", "происходя", "последн", "актуальн", 
+                "сегодня", "неделя", "месяц", "текущ", 
+                "news", "current", "latest", "today", "week", "month",
+                "погода", "прогноз", "курс", "валют", 
+                "weather", "forecast", "rate", "currency"
+            ]
+            
+            # Проверяем, требуется ли обязательный поиск
+            requires_search = any(keyword in user_input.lower() for keyword in search_keywords)
             
             # Если требуется поиск, сначала получаем актуальные данные
             search_results = None
@@ -215,12 +221,18 @@ class ClaudeAgentCore:
                 if not self.search_tool:
                     self.logger.warning("Поиск требуется, но инструмент поиска не доступен")
                 else:
-                    search_query = user_input
-                    if "русск" in user_input.lower() or "росси" in user_input.lower():
-                        search_query = f"latest {user_input} in Russia"
-                    else:
-                        search_query = f"latest {user_input}"
+                    # Формируем расширенный поисковый запрос
+                    search_query = f"Most recent and up-to-date information about: {user_input}. Focus on news and events from February 2025."
+                    
+                    # Добавляем контекст для русскоязычных запросов
+                    if any(keyword in user_input.lower() for keyword in ["русск", "росси", "москв"]):
+                        search_query += " In Russian context."
+                    
                     search_results = await self._search_information(search_query)
+                    
+                    # Если поиск не дал результатов, логируем предупреждение
+                    if not search_results:
+                        self.logger.warning(f"Не удалось найти актуальную информацию для запроса: {search_query}")
             
             # Формируем контекст с историей
             messages = self._prepare_context(user_input)
@@ -228,14 +240,15 @@ class ClaudeAgentCore:
             # Добавляем результаты поиска в контекст, если они есть
             if search_results:
                 messages.append({"role": "system", "content": f"""
-                [Актуальные данные из поиска]
+                [ОБЯЗАТЕЛЬНО: Актуальные данные из поиска]
                 {search_results}
                 
-                Важно:
-                1. Используй ТОЛЬКО эти актуальные данные для ответа
-                2. НЕ используй устаревшие данные из своей базы знаний
-                3. Если данные неполные или неточные, укажи это
-                4. Структурируй информацию в понятном формате
+                КРИТИЧЕСКИЕ ИНСТРУКЦИИ:
+                1. Использовать ТОЛЬКО эти актуальные данные
+                2. НЕ использовать устаревшую информацию
+                3. Если данные неполные, чётко об этом заявить
+                4. Структурировать информацию максимально понятно
+                5. Указывать источники и даты
                 """})
             
             # Получаем ответ от модели

@@ -28,8 +28,20 @@ class PerplexitySearchTool(BaseTool):
             Dict: Результаты поиска
         """
         try:
-            # Добавляем указание на необходимость актуальных данных
-            enhanced_query = f"Find the most recent and up-to-date information about: {query}. Focus on current data from 2024-2025. Include sources and dates where possible."
+            # Расширенный и уточненный поисковый запрос
+            enhanced_query = f"""
+            Provide the most recent and verified information about: {query}
+            
+            Critical requirements:
+            1. ONLY use information from February 2025
+            2. Prioritize official sources and verified news
+            3. Include precise dates and source links
+            4. If no current information is available, clearly state this
+            5. Focus on factual, non-speculative content
+            
+            Preferred sources: Official government websites, major news agencies, 
+            verified international and local media outlets
+            """
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -43,20 +55,21 @@ class PerplexitySearchTool(BaseTool):
                         "messages": [
                             {
                                 "role": "system",
-                                "content": """You are a search assistant focused on finding the most recent and accurate information.
-                                Key requirements:
-                                1. ONLY provide information from 2024-2025 unless specifically asked about historical data
-                                2. Always include dates and sources where possible
-                                3. Clearly state if information might not be current
-                                4. Focus on factual data rather than opinions
-                                5. Structure information in a clear, readable format"""
+                                "content": """You are a professional search assistant focused on finding the most recent, accurate, and verifiable information.
+                                Key operational principles:
+                                - Absolute priority on current information (February 2025)
+                                - Zero tolerance for outdated or speculative data
+                                - Mandatory source verification
+                                - Clear presentation of information
+                                - Immediate disclosure of information limitations"""
                             },
                             {
                                 "role": "user",
                                 "content": enhanced_query
                             }
                         ],
-                        "max_tokens": 1024
+                        "max_tokens": 2048,  # Увеличиваем для более подробного ответа
+                        "temperature": 0.3  # Снижаем температуру для более точных результатов
                     }
                 )
                 
