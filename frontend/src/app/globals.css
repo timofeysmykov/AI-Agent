@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 31, 41, 55;
+  --background-rgb: 255, 255, 255;
+  --surface-rgb: 243, 244, 246;
+  --primary-rgb: 99, 102, 241;
+  --secondary-rgb: 139, 92, 246;
+  --accent-rgb: 236, 72, 153;
+}
+
+.dark {
+  --foreground-rgb: 229, 231, 235;
+  --background-rgb: 18, 18, 18;
+  --surface-rgb: 30, 30, 30;
+  --primary-rgb: 129, 140, 248;
+  --secondary-rgb: 167, 139, 250;
+  --accent-rgb: 244, 114, 182;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Стили для скроллбара */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--surface-rgb));
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--primary-rgb), 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--primary-rgb), 0.7);
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-in-out;
+}
+
+/* Стили для кода */
+.code-block {
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: rgba(var(--primary-rgb), 0.1);
+  border-bottom: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+
+/* Стили для сообщений */
+.message {
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.message-user {
+  background: rgba(var(--primary-rgb), 0.1);
+  border-top-right-radius: 0;
+}
+
+.message-assistant {
+  background: rgba(var(--surface-rgb), 0.5);
+  border-top-left-radius: 0;
+}
+
+/* Стили для индикатора загрузки */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  margin: 0 2px;
+  border-radius: 50%;
+  background-color: rgba(var(--primary-rgb), 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+} 

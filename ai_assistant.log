@@ -1,0 +1,137 @@
+2025-02-25 13:29:24,978 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,979 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,979 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,979 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,979 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,978 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,980 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,980 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,980 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,980 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,981 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,981 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:24,981 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:24,981 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:24,981 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,982 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,981 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:24,984 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:24,982 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:24,984 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:24,985 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,985 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:24,987 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:24,987 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,191 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,191 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,191 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,191 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,195 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,194 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,195 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,195 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,194 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,195 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,196 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,196 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,196 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,197 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,196 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,197 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,198 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,198 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,274 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,274 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:29:45,275 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,275 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:29:45,278 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:29:45,278 - ai_assistant.server - ERROR - Ошибка инициализации агента: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:34:58,395 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:34:58,395 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:34:58,398 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:34:58,398 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:34:58,399 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:34:58,399 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:34:58,400 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:34:58,400 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:34:58,400 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:34:58,400 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:34:58,401 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:34:58,401 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:34:58,403 - ai_assistant.server - ERROR - Ошибка в обработке запроса: __init__() got an unexpected keyword argument 'proxies'
+Traceback (most recent call last):
+  File "/Users/timsmykov/AI-Agent/ai_assistant/server.py", line 46, in chat_endpoint
+    agent = ClaudeAgentCore(
+  File "/Users/timsmykov/AI-Agent/ai_assistant/ai_agent.py", line 146, in __init__
+    self.claude_client = anthropic.Anthropic(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_client.py", line 119, in __init__
+    super().__init__(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_base_client.py", line 801, in __init__
+    self._client = http_client or SyncHttpxClientWrapper(
+TypeError: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:34:58,403 - ai_assistant.server - ERROR - Ошибка в обработке запроса: __init__() got an unexpected keyword argument 'proxies'
+Traceback (most recent call last):
+  File "/Users/timsmykov/AI-Agent/ai_assistant/server.py", line 46, in chat_endpoint
+    agent = ClaudeAgentCore(
+  File "/Users/timsmykov/AI-Agent/ai_assistant/ai_agent.py", line 146, in __init__
+    self.claude_client = anthropic.Anthropic(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_client.py", line 119, in __init__
+    super().__init__(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_base_client.py", line 801, in __init__
+    self._client = http_client or SyncHttpxClientWrapper(
+TypeError: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:40:27,653 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:40:27,653 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:40:27,655 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:40:27,655 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:40:27,656 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:40:27,656 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:40:27,657 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:40:27,657 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:40:27,657 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:40:27,657 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:40:27,658 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:40:27,658 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:40:27,659 - ai_assistant.server - ERROR - Ошибка в обработке запроса: __init__() got an unexpected keyword argument 'proxies'
+Traceback (most recent call last):
+  File "/Users/timsmykov/AI-Agent/ai_assistant/server.py", line 46, in chat_endpoint
+    agent = ClaudeAgentCore(
+  File "/Users/timsmykov/AI-Agent/ai_assistant/ai_agent.py", line 146, in __init__
+    self.claude_client = anthropic.Anthropic(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_client.py", line 119, in __init__
+    super().__init__(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_base_client.py", line 801, in __init__
+    self._client = http_client or SyncHttpxClientWrapper(
+TypeError: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:40:27,659 - ai_assistant.server - ERROR - Ошибка в обработке запроса: __init__() got an unexpected keyword argument 'proxies'
+Traceback (most recent call last):
+  File "/Users/timsmykov/AI-Agent/ai_assistant/server.py", line 46, in chat_endpoint
+    agent = ClaudeAgentCore(
+  File "/Users/timsmykov/AI-Agent/ai_assistant/ai_agent.py", line 146, in __init__
+    self.claude_client = anthropic.Anthropic(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_client.py", line 119, in __init__
+    super().__init__(
+  File "/Users/timsmykov/AI-Agent/venv/lib/python3.9/site-packages/anthropic/_base_client.py", line 801, in __init__
+    self._client = http_client or SyncHttpxClientWrapper(
+TypeError: __init__() got an unexpected keyword argument 'proxies'
+2025-02-25 13:41:00,522 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:41:00,522 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:41:00,523 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:41:00,523 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:41:00,525 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:41:00,525 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:41:00,526 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:41:00,526 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:41:00,550 - ai_assistant.ai_agent - INFO - Получен новый запрос: Привет, как дела?...
+2025-02-25 13:41:00,550 - ai_assistant.ai_agent - INFO - Получен новый запрос: Привет, как дела?...
+2025-02-25 13:41:00,552 - ai_assistant.ai_agent - INFO - Отправка запроса к Claude API с 2 сообщениями
+2025-02-25 13:41:00,552 - ai_assistant.ai_agent - INFO - Отправка запроса к Claude API с 2 сообщениями
+2025-02-25 13:41:01,536 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-02-25 13:41:01,543 - ai_assistant.ai_agent - INFO - Получен ответ длиной 27 символов
+2025-02-25 13:41:01,543 - ai_assistant.ai_agent - INFO - Получен ответ длиной 27 символов
+2025-02-25 13:41:01,545 - ai_assistant.server - INFO - Получен ответ длиной 28 символов
+2025-02-25 13:41:01,545 - ai_assistant.server - INFO - Получен ответ длиной 28 символов

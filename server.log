@@ -1,0 +1,28 @@
+[2025-02-25 13:40:57 +0300] [16409] [INFO] Starting gunicorn 20.1.0
+[2025-02-25 13:40:57 +0300] [16409] [INFO] Listening at: http://0.0.0.0:5000 (16409)
+[2025-02-25 13:40:57 +0300] [16409] [INFO] Using worker: sync
+[2025-02-25 13:40:57 +0300] [16416] [INFO] Booting worker with pid: 16416
+[2025-02-25 13:40:57 +0300] [16417] [INFO] Booting worker with pid: 16417
+[2025-02-25 13:40:57 +0300] [16418] [INFO] Booting worker with pid: 16418
+[2025-02-25 13:40:57 +0300] [16419] [INFO] Booting worker with pid: 16419
+2025-02-25 13:41:00,522 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:41:00,522 - ai_assistant.server - INFO - Получен запрос к /api/chat
+2025-02-25 13:41:00,523 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:41:00,523 - ai_assistant.server - INFO - API ключи: Claude - Установлен, Perplexity - Установлен
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Получены данные: {'message': 'Привет, как дела?'}
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:41:00,524 - ai_assistant.server - INFO - Обрабатываем сообщение: Привет, как дела?...
+2025-02-25 13:41:00,525 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:41:00,525 - ai_assistant.ai_agent - INFO - Инструмент поиска Perplexity успешно инициализирован
+2025-02-25 13:41:00,526 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:41:00,526 - ai_assistant.ai_agent - INFO - Загружен системный промпт длиной 3783 символов
+2025-02-25 13:41:00,550 - ai_assistant.ai_agent - INFO - Получен новый запрос: Привет, как дела?...
+2025-02-25 13:41:00,550 - ai_assistant.ai_agent - INFO - Получен новый запрос: Привет, как дела?...
+2025-02-25 13:41:00,552 - ai_assistant.ai_agent - INFO - Отправка запроса к Claude API с 2 сообщениями
+2025-02-25 13:41:00,552 - ai_assistant.ai_agent - INFO - Отправка запроса к Claude API с 2 сообщениями
+2025-02-25 13:41:01,536 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-02-25 13:41:01,543 - ai_assistant.ai_agent - INFO - Получен ответ длиной 27 символов
+2025-02-25 13:41:01,543 - ai_assistant.ai_agent - INFO - Получен ответ длиной 27 символов
+2025-02-25 13:41:01,545 - ai_assistant.server - INFO - Получен ответ длиной 28 символов
+2025-02-25 13:41:01,545 - ai_assistant.server - INFO - Получен ответ длиной 28 символов

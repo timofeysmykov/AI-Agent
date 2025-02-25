@@ -1,0 +1,10 @@
+streamlit==1.32.0
+python-dotenv==1.0.1
+anthropic==0.19.1
+openai==1.12.0
+asyncio==3.4.3
+typing==3.7.4.3
+requests==2.31.0
+flask==2.3.2
+flask-cors==4.0.0
+gunicorn==20.1.0
